@@ -1,122 +1,67 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useConfig } from './context/ConfigContext';
+import Layout from './components/Layout';
+// Importaciones de CRUDs
+import Clientes from './pages/cruds/Clientes';
+import Usuarios from './pages/cruds/Usuarios';
+import Roles from './pages/cruds/Roles';
+import Pacientes from './pages/cruds/Pacientes';
+import EspeciesRazas from './pages/cruds/EspeciesRazas';
+import Productos from './pages/cruds/Productos';
+import Proveedores from './pages/cruds/Proveedores';
+import Servicios from './pages/cruds/Servicios';
+import FichasMedicas from './pages/cruds/FichasMedicas';
+import RecetasMedicas from './pages/cruds/RecetasMedicas';
+// Importaciones de Gestores
+import GestorVentas from './pages/gestores/GestorVentas';
+import GestorClinico from './pages/gestores/GestorClinico';
+import GestorInventario from './pages/gestores/GestorInventario';
+import GestorCitas from './pages/gestores/GestorCitas';
+import AsistenteConfiguracion from './pages/gestores/AsistenteConfiguracion';
+// Importaciones de Dashboards
+import AuditoriaFinanciera from './pages/dashboards/AuditoriaFinanciera';
+import ControlInventario from './pages/dashboards/ControlInventario';
+import RendimientoStaff from './pages/dashboards/RendimientoStaff';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { isConfigurado } = useConfig();
+
+  if (!isConfigurado) {
+    return <AsistenteConfiguracion />;
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<h2 className="p-4">Bienvenido al Sistema. Seleccione un módulo en el menú lateral.</h2>} />
+          
+          <Route path="clientes" element={<Clientes/>} />
+          <Route path="usuarios" element={<Usuarios/>} />
+          <Route path="roles" element={<Roles/>} />
+          <Route path="pacientes" element={<Pacientes/>} />
+          <Route path="especies" element={<EspeciesRazas/>} />
+          <Route path="productos" element={<Productos/>} />
+          <Route path="proveedores" element={<Proveedores/>} />
+          <Route path="servicios" element={<Servicios/>} />
+          <Route path="fichas" element={<FichasMedicas/>} />
+          <Route path="recetas" element={<RecetasMedicas/>} />
+          
+          <Route path="ventas" element={<GestorVentas/>} />
+          <Route path="clinica" element={<GestorClinico/>} />
+          <Route path="inventario" element={<GestorInventario/>} />
+          <Route path="citas" element={<GestorCitas/>} />
+          
+          <Route path="auditoria" element={<AuditoriaFinanciera/>} />
+          <Route path="stock-critico" element={<ControlInventario/>} />
+          <Route path="rendimiento" element={<RendimientoStaff/>} />
+          
+          {/* Ruta de seguridad para URLs no encontradas */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
