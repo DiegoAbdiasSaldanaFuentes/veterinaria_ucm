@@ -32,6 +32,12 @@ export default function Layout() {
               <Link to="/rendimiento" className="nav-link text-white">Rendimiento Staff</Link>
             </>
           )}
+          {isActivo('vacunacion') && (
+            <>
+              <Link to="/vacunacion" className="nav-link text-white">Registro de Vacunación</Link>
+              <Link to="/recordatorios" className="nav-link text-white">Recordatorios Vacunas</Link>
+            </>
+          )}
         </nav>
       </div>
 

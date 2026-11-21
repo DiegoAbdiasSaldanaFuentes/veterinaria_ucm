@@ -18,11 +18,13 @@ import GestorClinico from './pages/gestores/GestorClinico';
 import GestorInventario from './pages/gestores/GestorInventario';
 import GestorCitas from './pages/gestores/GestorCitas';
 import AsistenteConfiguracion from './pages/gestores/AsistenteConfiguracion';
+import GestorVacunacion from './pages/gestores/GestorVacunacion';
 // Importaciones de Dashboards
 import AuditoriaFinanciera from './pages/dashboards/AuditoriaFinanciera';
 import ControlInventario from './pages/dashboards/ControlInventario';
 import RendimientoStaff from './pages/dashboards/RendimientoStaff';
-
+import RecordatoriosVacunacion from './pages/dashboards/RecordatoriosVacunacion';
+import Inicio from './pages/dashboards/Inicio';
 function App() {
   const { isConfigurado } = useConfig();
 
@@ -34,7 +36,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<h2 className="p-4">Bienvenido al Sistema. Seleccione un módulo en el menú lateral.</h2>} />
+          <Route index element={<Inicio />} />
           
           <Route path="clientes" element={<Clientes/>} />
           <Route path="usuarios" element={<Usuarios/>} />
@@ -55,6 +57,8 @@ function App() {
           <Route path="auditoria" element={<AuditoriaFinanciera/>} />
           <Route path="stock-critico" element={<ControlInventario/>} />
           <Route path="rendimiento" element={<RendimientoStaff/>} />
+          <Route path="vacunacion" element={<GestorVacunacion />} />
+          <Route path="recordatorios" element={<RecordatoriosVacunacion />} />
           
           {/* Ruta de seguridad para URLs no encontradas */}
           <Route path="*" element={<Navigate to="/" replace />} />

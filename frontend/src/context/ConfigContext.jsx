@@ -10,7 +10,8 @@ export function ConfigProvider({ children }) {
     { id: 'clinica', nombre: 'Gestión Clínica', activo: false },
     { id: 'inventario', nombre: 'Gestión de Inventario', activo: false },
     { id: 'citas', nombre: 'Agendar Citas', activo: false },
-    { id: 'auditoria', nombre: 'Auditoría y Reportes', activo: false }
+    { id: 'auditoria', nombre: 'Auditoría y Reportes', activo: false },
+    { id: 'vacunacion', nombre: 'Calendario y Recordatorios de Vacunación', activo: false }
   ]);
 
   const toggleModulo = (id) => {
