@@ -57,28 +57,22 @@ export default function Layout() {
           {isActivo('citas') && <Link to="/citas" className="nav-link text-white py-1">Agendar Citas</Link>}
           {isActivo('clinica') && <Link to="/clinica" className="nav-link text-white py-1">Gestión Clínica</Link>}
           {isActivo('inventario') && <Link to="/inventario" className="nav-link text-white py-1">Ingreso Inventario</Link>}
-          {isActivo('vacunacion') && (
-            <>
-              <Link to="/vacunacion" className="nav-link text-white py-1">Registro Vacunación</Link>
-              <Link to="/recordatorios" className="nav-link text-white py-1">Recordatorios Vacunas</Link>
-            </>
-          )}
-          {isActivo('auditoria') && (
-            <>
-              <Link to="/auditoria" className="nav-link text-white py-1">Auditoría Financiera</Link>
-              <Link to="/stock-critico" className="nav-link text-white py-1">Stock Crítico</Link>
-              <Link to="/rendimiento" className="nav-link text-white py-1">Rendimiento Staff</Link>
-            </>
-          )}
+          {isActivo('vacunacion') && <Link to="/vacunacion" className="nav-link text-white py-1">Registro Vacunación</Link>}
+          {isActivo('recordatorios') && <Link to="/recordatorios" className="nav-link text-white py-1">Recordatorios Vacunas</Link>}
+          {isActivo('auditoria') && <Link to="/auditoria" className="nav-link text-white py-1">Auditoría Financiera</Link>}
+          {isActivo('stock_critico') && <Link to="/stock-critico" className="nav-link text-white py-1">Stock Crítico</Link>}
+          {isActivo('rendimiento') && <Link to="/rendimiento" className="nav-link text-white py-1">Rendimiento Staff</Link>}
         </nav>
 
-        <button
-          type="button"
-          onClick={reabrirConfiguracion}
-          className="btn btn-warning btn-sm text-dark fw-bold mt-3"
-        >
-          Cambiar Herramientas
-        </button>
+        {esAdmin && (
+          <button
+            type="button"
+            onClick={reabrirConfiguracion}
+            className="btn btn-warning btn-sm text-dark fw-bold mt-3"
+          >
+            Cambiar Herramientas
+          </button>
+        )}
         <button type="button" onClick={logout} className="btn btn-outline-light btn-sm mt-2">
           Cerrar Sesión
         </button>

@@ -6,11 +6,14 @@ const STORAGE_KEY = 'vet_config_modulos_v1';
 
 const MODULOS_INICIALES = [
   { id: 'ventas', nombre: 'Punto de Venta', activo: false },
-  { id: 'clinica', nombre: 'Gestión Clínica', activo: false },
-  { id: 'inventario', nombre: 'Gestión de Inventario', activo: false },
   { id: 'citas', nombre: 'Agendar Citas', activo: false },
-  { id: 'auditoria', nombre: 'Auditoría y Reportes', activo: false },
-  { id: 'vacunacion', nombre: 'Calendario y Recordatorios de Vacunación', activo: false }
+  { id: 'clinica', nombre: 'Gestión Clínica', activo: false },
+  { id: 'inventario', nombre: 'Ingreso Inventario', activo: false },
+  { id: 'vacunacion', nombre: 'Registro Vacunación', activo: false },
+  { id: 'recordatorios', nombre: 'Recordatorios Vacunas', activo: false },
+  { id: 'auditoria', nombre: 'Auditoría Financiera', activo: false },
+  { id: 'stock_critico', nombre: 'Stock Crítico', activo: false },
+  { id: 'rendimiento', nombre: 'Rendimiento Staff', activo: false },
 ];
 
 export function ConfigProvider({ children }) {
@@ -65,7 +68,7 @@ export function ConfigProvider({ children }) {
         toggleModulo,
         isConfigurado,
         finalizarConfiguracion,
-        reabrirConfiguracion
+        reabrirConfiguracion,
       }}
     >
       {children}

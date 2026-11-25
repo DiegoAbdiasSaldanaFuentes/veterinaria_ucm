@@ -4,8 +4,9 @@ import { useConfig } from '../../context/ConfigContext';
 import { obtenerResumenInicio } from '../../services/dashboardService';
 
 export default function Inicio() {
-  const { modulos } = useConfig();
+const { modulos } = useConfig();
   const [resumen, setResumen] = useState(null);
+  const [error, setError] = useState('');
 
   const isActivo = (id) => {
     const modulo = modulos.find(m => m.id === id);
@@ -13,10 +14,17 @@ export default function Inicio() {
   };
 
   useEffect(() => {
-    obtenerResumenInicio().then(res => {
-      if (res.success) setResumen(res.data);
-    });
+    obtenerResumenInicio()
+      .then(res => {
+        if (res.success) setResumen(res.data);
+        else setError(res.message);
+      })
+      .catch(err => setError(err.message || 'No se pudo cargar el resumen'));
   }, []);
+
+  if (error) {
+    return <div className="p-4"><div className="alert alert-danger">{error}</div></div>;
+  }
 
   if (!resumen) {
     return <div className="p-4">Cargando resumen...</div>;
