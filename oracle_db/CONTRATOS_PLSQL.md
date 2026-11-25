@@ -12,6 +12,7 @@
 4. `oracle_db/04_gestores_y_triggers_plsql.sql` *(Gestores de Ventas POS y Agenda/Citas)*
 5. `oracle_db/05_productos_y_clinico_plsql.sql` *(Gestores de Inventario, Clínico y Vacunaciones)*
 6. `oracle_db/06_reportes_y_triggers_plsql.sql` *(Reportes Dashboards + 5 Triggers de control)*
+7. `oracle_db/07_seed_data.sql` *(Datos semilla iniciales para pruebas y demostración)*
 
 **Convención de respuestas:** Todos los procedimientos manejan `COMMIT`/`ROLLBACK` y retornan un mensaje en `o_mensaje` con prefijo `'OK: ...'` o `'ERROR: ...'`. Ningún procedimiento usa `DBMS_OUTPUT.PUT_LINE`.
 
