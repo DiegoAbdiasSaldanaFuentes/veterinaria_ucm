@@ -1,62 +1,147 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getProductos, crearProducto, actualizarProducto, eliminarProducto, getProveedores } from '../../services/mantenedoresService';
 
 export default function Productos() {
-  const [productos, setProductos] = useState([
-    { id: 1, codigo_barras: '123456789', nombre: 'Meloxicam 5mg', categoria: 'Medicamento', precio_unitario: 12000, stock_actual: 5, proveedor_id: '1' }
-  ]);
+  const [productos, setProductos] = useState([]);
+  const [proveedores, setProveedores] = useState([]);
   const [mostrarModal, setMostrarModal] = useState(false);
-  const [formData, setFormData] = useState({ codigo_barras: '', nombre: '', categoria: '', precio_unitario: '', stock_actual: '', proveedor_id: '' });
+  const [editId, setEditId] = useState(null);
+  const [mensaje, setMensaje] = useState(null);
+  const [formData, setFormData] = useState({
+    id_proveedor: '',
+    sku: '',
+    nombre_producto: '',
+    precio_unitario: '',
+    stock: 0,
+    stock_minimo: 0,
+    activo: 1,
+  });
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const cargar = async () => {
+    try {
+      const [resPr, resPv] = await Promise.all([getProductos(), getProveedores()]);
+      if (resPr.success) setProductos(resPr.data);
+      if (resPv.success) setProveedores(resPv.data);
+    } catch (err) {
+      setMensaje({ tipo: 'danger', texto: err.message });
+    }
+  };
 
-  const handleSubmit = (e) => {
+  useEffect(() => { cargar(); }, []);
+
+  const abrirNuevo = () => {
+    setEditId(null);
+    setFormData({ id_proveedor: '', sku: '', nombre_producto: '', precio_unitario: '', stock: 0, stock_minimo: 0, activo: 1 });
+    setMostrarModal(true);
+  };
+
+  const abrirEditar = (p) => {
+    setEditId(p.id_producto);
+    setFormData({
+      id_proveedor: p.id_proveedor || '',
+      sku: p.sku,
+      nombre_producto: p.nombre_producto,
+      precio_unitario: p.precio_unitario,
+      stock: p.stock,
+      stock_minimo: p.stock_minimo,
+      activo: p.activo ?? 1,
+    });
+    setMostrarModal(true);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setProductos([...productos, { ...formData, id: Date.now() }]);
-    setMostrarModal(false);
-    setFormData({ codigo_barras: '', nombre: '', categoria: '', precio_unitario: '', stock_actual: '', proveedor_id: '' });
+    try {
+      const res = editId
+        ? await actualizarProducto(editId, formData)
+        : await crearProducto(formData);
+      setMensaje({ tipo: res.success ? 'success' : 'danger', texto: res.message });
+      if (res.success) {
+        setMostrarModal(false);
+        cargar();
+      }
+    } catch (err) {
+      setMensaje({ tipo: 'danger', texto: err.message });
+    }
+  };
+
+  const handleEliminar = async (id) => {
+    if (!window.confirm('¿Eliminar este producto?')) return;
+    try {
+      const res = await eliminarProducto(id);
+      setMensaje({ tipo: res.success ? 'success' : 'danger', texto: res.message });
+      if (res.success) cargar();
+    } catch (err) {
+      setMensaje({ tipo: 'danger', texto: err.message });
+    }
   };
 
   return (
-    <div>
+    <div className="p-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2>Gestión de Productos</h2>
-        <button className="btn btn-primary" onClick={() => setMostrarModal(true)}>Nuevo Producto</button>
+        <button className="btn btn-primary" onClick={abrirNuevo}>Nuevo Producto</button>
       </div>
+
+      {mensaje && (
+        <div className={`alert alert-${mensaje.tipo} alert-dismissible`}>
+          {mensaje.texto}
+          <button type="button" className="btn-close" onClick={() => setMensaje(null)}></button>
+        </div>
+      )}
+
       <table className="table table-striped">
         <thead className="table-dark">
-          <tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>ID Proveedor</th><th>Acciones</th></tr>
+          <tr><th>SKU</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Mínimo</th><th>Proveedor</th><th>Estado</th><th>Acciones</th></tr>
         </thead>
         <tbody>
-          {productos.map(producto => (
-            <tr key={producto.id}>
-              <td>{producto.codigo_barras}</td><td>{producto.nombre}</td><td>{producto.categoria}</td><td>{producto.precio_unitario}</td><td>{producto.stock_actual}</td><td>{producto.proveedor_id}</td>
+          {productos.map((p) => (
+            <tr key={p.id_producto}>
+              <td>{p.sku}</td>
+              <td>{p.nombre_producto}</td>
+              <td>${Number(p.precio_unitario).toLocaleString('es-CL')}</td>
+              <td>{p.stock}</td>
+              <td>{p.stock_minimo}</td>
+              <td>{p.proveedor || 'SIN PROVEEDOR'}</td>
               <td>
-                <button className="btn btn-sm btn-warning me-2">Editar</button>
-                <button className="btn btn-sm btn-danger">Eliminar</button>
+                <span className={`badge ${p.activo === 1 ? 'bg-success' : 'bg-secondary'}`}>
+                  {p.activo === 1 ? 'Activo' : 'Inactivo'}
+                </span>
+              </td>
+              <td>
+                <button className="btn btn-sm btn-warning me-2" onClick={() => abrirEditar(p)}>Editar</button>
+                <button className="btn btn-sm btn-danger" onClick={() => handleEliminar(p.id_producto)}>Eliminar</button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+
       {mostrarModal && (
         <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Formulario Producto</h5>
+                <h5 className="modal-title">{editId ? 'Editar Producto' : 'Nuevo Producto'}</h5>
                 <button type="button" className="btn-close" onClick={() => setMostrarModal(false)}></button>
               </div>
               <form onSubmit={handleSubmit}>
                 <div className="modal-body">
-                  <input type="text" name="codigo_barras" placeholder="Código de Barras" className="form-control mb-2" value={formData.codigo_barras} onChange={handleChange} required />
-                  <input type="text" name="nombre" placeholder="Nombre" className="form-control mb-2" value={formData.nombre} onChange={handleChange} required />
-                  <input type="text" name="categoria" placeholder="Categoría" className="form-control mb-2" value={formData.categoria} onChange={handleChange} required />
-                  <input type="number" name="precio_unitario" placeholder="Precio Unitario" className="form-control mb-2" value={formData.precio_unitario} onChange={handleChange} required />
-                  <input type="number" name="stock_actual" placeholder="Stock Actual" className="form-control mb-2" value={formData.stock_actual} onChange={handleChange} required />
-                  <select name="proveedor_id" className="form-control mb-2" value={formData.proveedor_id} onChange={handleChange} required>
-                    <option value="">Seleccione Proveedor</option>
-                    <option value="1">Distribuidora Vet</option>
+                  <input type="text" placeholder="SKU (ej: MED-001)" className="form-control mb-2" value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} required />
+                  <input type="text" placeholder="Nombre Producto" className="form-control mb-2" value={formData.nombre_producto} onChange={(e) => setFormData({ ...formData, nombre_producto: e.target.value })} required />
+                  <input type="number" min="0" placeholder="Precio Unitario" className="form-control mb-2" value={formData.precio_unitario} onChange={(e) => setFormData({ ...formData, precio_unitario: e.target.value })} required />
+                  <input type="number" min="0" placeholder="Stock" className="form-control mb-2" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} required />
+                  <input type="number" min="0" placeholder="Stock Mínimo" className="form-control mb-2" value={formData.stock_minimo} onChange={(e) => setFormData({ ...formData, stock_minimo: e.target.value })} required />
+                  <select className="form-select mb-2" value={formData.id_proveedor} onChange={(e) => setFormData({ ...formData, id_proveedor: e.target.value })}>
+                    <option value="">Sin Proveedor</option>
+                    {proveedores.map((pv) => <option key={pv.id_proveedor} value={pv.id_proveedor}>{pv.razon_social}</option>)}
                   </select>
+                  {editId && (
+                    <select className="form-select" value={formData.activo} onChange={(e) => setFormData({ ...formData, activo: Number(e.target.value) })}>
+                      <option value={1}>Activo</option>
+                      <option value={0}>Inactivo</option>
+                    </select>
+                  )}
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-secondary" onClick={() => setMostrarModal(false)}>Cancelar</button>

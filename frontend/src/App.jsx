@@ -25,9 +25,16 @@ import ControlInventario from './pages/dashboards/ControlInventario';
 import RendimientoStaff from './pages/dashboards/RendimientoStaff';
 import RecordatoriosVacunacion from './pages/dashboards/RecordatoriosVacunacion';
 import Inicio from './pages/dashboards/Inicio';
+// Importacion de Autentificaciones
+import { useAuth } from './context/AuthContext';
+import Login from './pages/Login';
 function App() {
   const { isConfigurado } = useConfig();
+  const { isAuthenticated } = useAuth();
 
+  if (!isAuthenticated) {
+    return <Login />;
+  }
   if (!isConfigurado) {
     return <AsistenteConfiguracion />;
   }

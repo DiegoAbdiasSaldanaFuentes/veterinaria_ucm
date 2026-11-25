@@ -1,63 +1,103 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getFichas, actualizarFicha, eliminarFicha } from '../../services/mantenedoresService';
 
 export default function FichasMedicas() {
-  const [fichas, setFichas] = useState([
-    { id: 1, paciente_id: '1', veterinario_id: '1', diagnostico: 'Sano', observaciones: 'Ninguna' }
-  ]);
+  const [fichas, setFichas] = useState([]);
   const [mostrarModal, setMostrarModal] = useState(false);
-  const [formData, setFormData] = useState({ paciente_id: '', veterinario_id: '', diagnostico: '', observaciones: '' });
+  const [editId, setEditId] = useState(null);
+  const [mensaje, setMensaje] = useState(null);
+  const [formData, setFormData] = useState({ diagnostico: '', observaciones: '' });
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const cargar = async () => {
+    try {
+      const res = await getFichas();
+      if (res.success) setFichas(res.data);
+    } catch (err) {
+      setMensaje({ tipo: 'danger', texto: err.message });
+    }
+  };
 
-  const handleSubmit = (e) => {
+  useEffect(() => { cargar(); }, []);
+
+  const abrirEditar = (f) => {
+    setEditId(f.id_ficha);
+    setFormData({ diagnostico: f.diagnostico || '', observaciones: f.observaciones || '' });
+    setMostrarModal(true);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setFichas([...fichas, { ...formData, id: Date.now() }]);
-    setMostrarModal(false);
-    setFormData({ paciente_id: '', veterinario_id: '', diagnostico: '', observaciones: '' });
+    try {
+      const res = await actualizarFicha(editId, formData);
+      setMensaje({ tipo: res.success ? 'success' : 'danger', texto: res.message });
+      if (res.success) {
+        setMostrarModal(false);
+        cargar();
+      }
+    } catch (err) {
+      setMensaje({ tipo: 'danger', texto: err.message });
+    }
+  };
+
+  const handleEliminar = async (id) => {
+    if (!window.confirm('¿Eliminar esta ficha clínica?')) return;
+    try {
+      const res = await eliminarFicha(id);
+      setMensaje({ tipo: res.success ? 'success' : 'danger', texto: res.message });
+      if (res.success) cargar();
+    } catch (err) {
+      setMensaje({ tipo: 'danger', texto: err.message });
+    }
   };
 
   return (
-    <div>
+    <div className="p-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>Fichas Médicas</h2>
-        <button className="btn btn-primary" onClick={() => setMostrarModal(true)}>Nueva Ficha</button>
+        <h2>Fichas Clínicas</h2>
       </div>
+
+      {mensaje && (
+        <div className={`alert alert-${mensaje.tipo} alert-dismissible`}>
+          {mensaje.texto}
+          <button type="button" className="btn-close" onClick={() => setMensaje(null)}></button>
+        </div>
+      )}
+
       <table className="table table-striped">
         <thead className="table-dark">
-          <tr><th>ID Paciente</th><th>ID Veterinario</th><th>Diagnóstico</th><th>Observaciones</th><th>Acciones</th></tr>
+          <tr><th>Ficha #</th><th>Cita #</th><th>Paciente</th><th>Veterinario</th><th>Servicio</th><th>Diagnóstico</th><th>Observaciones</th><th>Acciones</th></tr>
         </thead>
         <tbody>
-          {fichas.map(ficha => (
-            <tr key={ficha.id}>
-              <td>{ficha.paciente_id}</td><td>{ficha.veterinario_id}</td><td>{ficha.diagnostico}</td><td>{ficha.observaciones}</td>
+          {fichas.map((f) => (
+            <tr key={f.id_ficha}>
+              <td>{f.id_ficha}</td>
+              <td>{f.id_cita}</td>
+              <td>{f.nombre_paciente}</td>
+              <td>{f.veterinario}</td>
+              <td>{f.nombre_servicio}</td>
+              <td>{f.diagnostico}</td>
+              <td>{f.observaciones}</td>
               <td>
-                <button className="btn btn-sm btn-warning me-2">Editar</button>
-                <button className="btn btn-sm btn-danger">Eliminar</button>
+                <button className="btn btn-sm btn-warning me-2" onClick={() => abrirEditar(f)}>Editar</button>
+                <button className="btn btn-sm btn-danger" onClick={() => handleEliminar(f.id_ficha)}>Eliminar</button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+
       {mostrarModal && (
         <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Formulario Ficha Médica</h5>
+                <h5 className="modal-title">Editar Ficha #{editId}</h5>
                 <button type="button" className="btn-close" onClick={() => setMostrarModal(false)}></button>
               </div>
               <form onSubmit={handleSubmit}>
                 <div className="modal-body">
-                  <select name="paciente_id" className="form-control mb-2" value={formData.paciente_id} onChange={handleChange} required>
-                    <option value="">Seleccione Paciente</option>
-                    <option value="1">Max</option>
-                  </select>
-                  <select name="veterinario_id" className="form-control mb-2" value={formData.veterinario_id} onChange={handleChange} required>
-                    <option value="">Seleccione Veterinario</option>
-                    <option value="1">Dr. Carlos</option>
-                  </select>
-                  <input type="text" name="diagnostico" placeholder="Diagnóstico" className="form-control mb-2" value={formData.diagnostico} onChange={handleChange} required />
-                  <input type="text" name="observaciones" placeholder="Observaciones" className="form-control mb-2" value={formData.observaciones} onChange={handleChange} required />
+                  <textarea placeholder="Diagnóstico" className="form-control mb-2" rows="3" value={formData.diagnostico} onChange={(e) => setFormData({ ...formData, diagnostico: e.target.value })} required />
+                  <textarea placeholder="Observaciones" className="form-control" rows="2" value={formData.observaciones} onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })} />
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-secondary" onClick={() => setMostrarModal(false)}>Cancelar</button>

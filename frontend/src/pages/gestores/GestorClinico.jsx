@@ -1,105 +1,181 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getProductos } from '../../services/mantenedoresService';
+import { getCitas, crearFichaClinica, agregarRecetaClinica } from '../../services/gestoresService';
 
 export default function GestorClinico() {
-  const pacientesMock = [
-    { id: 1, nombre: 'Max (Golden Retriever) - Dueño: Juan Pérez' },
-    { id: 2, nombre: 'Luna (Gato Siamés) - Dueña: María Gómez' }
-  ];
-  
-  const veterinariosMock = [
-    { id: 1, nombre: 'Dr. Carlos Castro (Veterinario Jefe)' },
-    { id: 2, nombre: 'Dra. Andrea Muñoz (Especialista)' }
-  ];
+  const [citas, setCitas] = useState([]);
+  const [productos, setProductos] = useState([]);
+  const [mensaje, setMensaje] = useState(null);
+  const [fichaCreadaId, setFichaCreadaId] = useState(null);
 
-  const serviciosMock = [
-    { id: 1, nombre: 'Consulta General', costo: 15000 },
-    { id: 2, nombre: 'Vacunación Antirrábica', costo: 12000 },
-    { id: 3, nombre: 'Control Sano', costo: 10000 }
-  ];
-
-  const [formData, setFormData] = useState({
-    paciente_id: '',
-    veterinario_id: '',
-    servicio_id: '',
-    peso: '',
+  const [fichaForm, setFichaForm] = useState({
+    id_cita: '',
     diagnostico: '',
-    tratamiento: ''
+    observaciones: '',
   });
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const [recetaForm, setRecetaForm] = useState({
+    id_ficha: '',
+    id_producto: '',
+    indicaciones: '',
+  });
+
+  const cargar = async () => {
+    try {
+      const [resCi, resPr] = await Promise.all([getCitas(), getProductos()]);
+      if (resCi.success) setCitas(resCi.data.filter((c) => c.estado !== 'CANCELADA'));
+      if (resPr.success) setProductos(resPr.data);
+    } catch (err) {
+      setMensaje({ tipo: 'danger', texto: err.message });
+    }
   };
 
-  const registrarConsulta = (e) => {
-    e.preventDefault();
-    
-    const payload = {
-      paciente_id: parseInt(formData.paciente_id),
-      veterinario_id: parseInt(formData.veterinario_id),
-      servicio_id: parseInt(formData.servicio_id),
-      peso_kg: parseFloat(formData.peso),
-      diagnostico: formData.diagnostico,
-      tratamiento: formData.tratamiento
-    };
+  useEffect(() => { cargar(); }, []);
 
-    console.log("Enviando POST a /api/fichas-clinicas:", payload);
-    alert("Atención enviada. Oracle ejecutará el procedimiento PROC_CREAR_FICHA_CLINICA.");
-    
-    // Limpiar formulario
-    setFormData({ paciente_id: '', veterinario_id: '', servicio_id: '', peso: '', diagnostico: '', tratamiento: '' });
+  const registrarFicha = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await crearFichaClinica({
+        id_cita: Number(fichaForm.id_cita),
+        diagnostico: fichaForm.diagnostico,
+        observaciones: fichaForm.observaciones,
+      });
+      setMensaje({ tipo: res.success ? 'success' : 'danger', texto: res.message });
+      if (res.success && res.data?.id_ficha) {
+        setFichaCreadaId(res.data.id_ficha);
+        setRecetaForm((prev) => ({ ...prev, id_ficha: res.data.id_ficha }));
+        setFichaForm({ id_cita: '', diagnostico: '', observaciones: '' });
+        cargar();
+      }
+    } catch (err) {
+      setMensaje({ tipo: 'danger', texto: err.message });
+    }
+  };
+
+  const registrarReceta = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await agregarRecetaClinica({
+        id_ficha: Number(recetaForm.id_ficha),
+        id_producto: Number(recetaForm.id_producto),
+        indicaciones: recetaForm.indicaciones,
+      });
+      setMensaje({ tipo: res.success ? 'success' : 'danger', texto: res.message });
+      if (res.success) {
+        setRecetaForm({ id_ficha: fichaCreadaId || '', id_producto: '', indicaciones: '' });
+      }
+    } catch (err) {
+      setMensaje({ tipo: 'danger', texto: err.message });
+    }
   };
 
   return (
-    <div>
-      <h2 className="mb-4">Gestión Clínica (Nueva Atención)</h2>
-      
-      <div className="card shadow-sm p-4" style={{ maxWidth: '800px' }}>
-        <form onSubmit={registrarConsulta}>
-          <div className="row mb-3">
-            <div className="col-md-6">
-              <label className="form-label text-secondary">Paciente (Mascota)</label>
-              <select className="form-select" name="paciente_id" value={formData.paciente_id} onChange={handleChange} required>
-                <option value="">Seleccione Paciente...</option>
-                {pacientesMock.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-              </select>
-            </div>
-            <div className="col-md-6">
-              <label className="form-label text-secondary">Veterinario Tratante</label>
-              <select className="form-select" name="veterinario_id" value={formData.veterinario_id} onChange={handleChange} required>
-                <option value="">Seleccione Veterinario...</option>
-                {veterinariosMock.map(v => <option key={v.id} value={v.id}>{v.nombre}</option>)}
-              </select>
-            </div>
-          </div>
+    <div className="p-4">
+      <h2 className="mb-4">Gestión Clínica</h2>
 
-          <div className="row mb-3">
-            <div className="col-md-6">
-              <label className="form-label text-secondary">Servicio Realizado</label>
-              <select className="form-select" name="servicio_id" value={formData.servicio_id} onChange={handleChange} required>
-                <option value="">Seleccione Servicio...</option>
-                {serviciosMock.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-              </select>
-            </div>
-            <div className="col-md-6">
-              <label className="form-label text-secondary">Peso Actual (Kg)</label>
-              <input type="number" step="0.1" min="0.1" className="form-control" name="peso" value={formData.peso} onChange={handleChange} placeholder="Ej: 4.5" required />
-            </div>
-          </div>
+      {mensaje && (
+        <div className={`alert alert-${mensaje.tipo} alert-dismissible`}>
+          {mensaje.texto}
+          <button type="button" className="btn-close" onClick={() => setMensaje(null)}></button>
+        </div>
+      )}
 
-          <div className="mb-3">
-            <label className="form-label text-secondary">Diagnóstico / Anamnesis</label>
-            <textarea className="form-control" name="diagnostico" rows="3" value={formData.diagnostico} onChange={handleChange} required></textarea>
-          </div>
+      <div className="row g-4">
+        <div className="col-lg-6">
+          <div className="card shadow-sm p-4">
+            <h5 className="mb-3">1. Registrar Ficha Clínica (desde Cita)</h5>
+            <form onSubmit={registrarFicha}>
+              <div className="mb-3">
+                <label className="form-label text-secondary">Cita</label>
+                <select
+                  className="form-select"
+                  value={fichaForm.id_cita}
+                  onChange={(e) => setFichaForm({ ...fichaForm, id_cita: e.target.value })}
+                  required
+                >
+                  <option value="">Seleccione Cita...</option>
+                  {citas.map((c) => (
+                    <option key={c.id_cita} value={c.id_cita}>
+                      Cita #{c.id_cita} — {c.nombre_paciente} ({c.fecha_hora_inicio}) [{c.estado}]
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="mb-4">
-            <label className="form-label text-secondary">Tratamiento Indicado (Receta)</label>
-            <textarea className="form-control" name="tratamiento" rows="3" value={formData.tratamiento} onChange={handleChange}></textarea>
-          </div>
+              <div className="mb-3">
+                <label className="form-label text-secondary">Diagnóstico</label>
+                <textarea
+                  className="form-control"
+                  rows="3"
+                  value={fichaForm.diagnostico}
+                  onChange={(e) => setFichaForm({ ...fichaForm, diagnostico: e.target.value })}
+                  required
+                />
+              </div>
 
-          <div className="d-flex justify-content-end">
-            <button type="submit" className="btn btn-success btn-lg">Registrar Ficha Clínica</button>
+              <div className="mb-3">
+                <label className="form-label text-secondary">Observaciones</label>
+                <textarea
+                  className="form-control"
+                  rows="2"
+                  value={fichaForm.observaciones}
+                  onChange={(e) => setFichaForm({ ...fichaForm, observaciones: e.target.value })}
+                />
+              </div>
+
+              <button type="submit" className="btn btn-success">Registrar Ficha Clínica</button>
+            </form>
           </div>
-        </form>
+        </div>
+
+        <div className="col-lg-6">
+          <div className="card shadow-sm p-4">
+            <h5 className="mb-3">2. Agregar Receta a Ficha</h5>
+            <form onSubmit={registrarReceta}>
+              <div className="mb-3">
+                <label className="form-label text-secondary">ID Ficha Clínica</label>
+                <input
+                  type="number"
+                  min="1"
+                  className="form-control"
+                  value={recetaForm.id_ficha}
+                  onChange={(e) => setRecetaForm({ ...recetaForm, id_ficha: e.target.value })}
+                  placeholder="Ej: 1"
+                  required
+                />
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label text-secondary">Producto / Medicamento</label>
+                <select
+                  className="form-select"
+                  value={recetaForm.id_producto}
+                  onChange={(e) => setRecetaForm({ ...recetaForm, id_producto: e.target.value })}
+                  required
+                >
+                  <option value="">Seleccione Producto...</option>
+                  {productos.map((p) => (
+                    <option key={p.id_producto} value={p.id_producto}>{p.nombre_producto}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label text-secondary">Indicaciones</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={recetaForm.indicaciones}
+                  onChange={(e) => setRecetaForm({ ...recetaForm, indicaciones: e.target.value })}
+                  placeholder="Ej: 1 cada 12h por 5 días"
+                  required
+                />
+              </div>
+
+              <button type="submit" className="btn btn-primary">Agregar Receta</button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );

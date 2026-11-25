@@ -1,48 +1,91 @@
 import { Outlet, Link } from 'react-router-dom';
 import { useConfig } from '../context/ConfigContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function Layout() {
-  const { modulos } = useConfig();
+  const { modulos, reabrirConfiguracion } = useConfig();
+  const { usuario, logout } = useAuth();
+
+  const rol = (usuario?.nombre_rol || '').toLowerCase();
+  const esAdmin = rol.includes('admin');
+  const esVet = rol.includes('veterinari');
+  const esRecep = rol.includes('recep');
 
   const isActivo = (id) => {
-    const modulo = modulos.find(m => m.id === id);
+    const modulo = modulos.find((m) => m.id === id);
     return modulo ? modulo.activo : false;
   };
 
   return (
     <div className="d-flex" style={{ minHeight: '100vh' }}>
-      <div className="text-white p-3" style={{ width: '250px', backgroundColor: '#003366' }}>
-        <h4 className="text-primary mb-4"><i className="fas fa-paw"></i> Veterinaria</h4>
-        <nav className="nav flex-column gap-2">
-          <Link to="/" className="nav-link text-white">Inicio</Link>
-          
-          {/* Módulos Base (CRUDs): Siempre visibles si quieres, o puedes condicionarlos también */}
-          <Link to="/clientes" className="nav-link text-white">Gestión de Clientes</Link>
-          <Link to="/pacientes" className="nav-link text-white">Gestión de Pacientes</Link>
-          
-          {/* Módulos Condicionales según la selección inicial */}
-          {isActivo('ventas') && <Link to="/ventas" className="nav-link text-white">Punto de Venta</Link>}
-          {isActivo('clinica') && <Link to="/clinica" className="nav-link text-white">Gestión Clínica</Link>}
-          {isActivo('inventario') && <Link to="/inventario" className="nav-link text-white">Ingreso Inventario</Link>}
-          {isActivo('citas') && <Link to="/citas" className="nav-link text-white">Agendar Citas</Link>}
-          {isActivo('auditoria') && (
+      <div className="text-white p-3 d-flex flex-column" style={{ width: '260px', backgroundColor: '#003366' }}>
+        <h4 className="text-primary mb-2">Veterinaria</h4>
+        <div className="small text-light opacity-75 mb-3 pb-2 border-bottom border-secondary">
+          <div>{usuario?.nombres} {usuario?.apellidos}</div>
+          <span className="badge bg-warning text-dark mt-1">{usuario?.nombre_rol}</span>
+        </div>
+
+        <nav className="nav flex-column gap-1 flex-grow-1">
+          <Link to="/" className="nav-link text-white py-1">Inicio</Link>
+
+          <div className="text-uppercase text-info small fw-bold mt-2 px-3">Mantenedores</div>
+          {(esAdmin || esRecep) && (
             <>
-              <Link to="/auditoria" className="nav-link text-white">Auditoría Financiera</Link>
-              <Link to="/stock-critico" className="nav-link text-white">Stock Crítico</Link>
-              <Link to="/rendimiento" className="nav-link text-white">Rendimiento Staff</Link>
+              <Link to="/clientes" className="nav-link text-white py-1">Clientes</Link>
+              <Link to="/pacientes" className="nav-link text-white py-1">Pacientes</Link>
             </>
           )}
+          {esAdmin && (
+            <>
+              <Link to="/especies" className="nav-link text-white py-1">Especies</Link>
+              <Link to="/productos" className="nav-link text-white py-1">Productos</Link>
+              <Link to="/proveedores" className="nav-link text-white py-1">Proveedores</Link>
+              <Link to="/servicios" className="nav-link text-white py-1">Servicios</Link>
+              <Link to="/usuarios" className="nav-link text-white py-1">Usuarios</Link>
+              <Link to="/roles" className="nav-link text-white py-1">Roles</Link>
+            </>
+          )}
+          {(esAdmin || esVet) && (
+            <>
+              <Link to="/fichas" className="nav-link text-white py-1">Fichas Clínicas</Link>
+              <Link to="/recetas" className="nav-link text-white py-1">Recetas Médicas</Link>
+            </>
+          )}
+
+          <div className="text-uppercase text-info small fw-bold mt-2 px-3">Herramientas</div>
+          {isActivo('ventas') && <Link to="/ventas" className="nav-link text-white py-1">Punto de Venta</Link>}
+          {isActivo('citas') && <Link to="/citas" className="nav-link text-white py-1">Agendar Citas</Link>}
+          {isActivo('clinica') && <Link to="/clinica" className="nav-link text-white py-1">Gestión Clínica</Link>}
+          {isActivo('inventario') && <Link to="/inventario" className="nav-link text-white py-1">Ingreso Inventario</Link>}
           {isActivo('vacunacion') && (
             <>
-              <Link to="/vacunacion" className="nav-link text-white">Registro de Vacunación</Link>
-              <Link to="/recordatorios" className="nav-link text-white">Recordatorios Vacunas</Link>
+              <Link to="/vacunacion" className="nav-link text-white py-1">Registro Vacunación</Link>
+              <Link to="/recordatorios" className="nav-link text-white py-1">Recordatorios Vacunas</Link>
+            </>
+          )}
+          {isActivo('auditoria') && (
+            <>
+              <Link to="/auditoria" className="nav-link text-white py-1">Auditoría Financiera</Link>
+              <Link to="/stock-critico" className="nav-link text-white py-1">Stock Crítico</Link>
+              <Link to="/rendimiento" className="nav-link text-white py-1">Rendimiento Staff</Link>
             </>
           )}
         </nav>
+
+        <button
+          type="button"
+          onClick={reabrirConfiguracion}
+          className="btn btn-warning btn-sm text-dark fw-bold mt-3"
+        >
+          Cambiar Herramientas
+        </button>
+        <button type="button" onClick={logout} className="btn btn-outline-light btn-sm mt-2">
+          Cerrar Sesión
+        </button>
       </div>
 
       <div className="flex-grow-1 bg-light">
-        <Outlet /> 
+        <Outlet />
       </div>
     </div>
   );

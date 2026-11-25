@@ -1,56 +1,117 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getServicios, crearServicio, actualizarServicio, eliminarServicio } from '../../services/mantenedoresService';
 
 export default function Servicios() {
-  const [servicios, setServicios] = useState([
-    { id: 1, nombre_servicio: 'Consulta General', descripcion: 'Chequeo básico', costo_base: 15000 }
-  ]);
+  const [servicios, setServicios] = useState([]);
   const [mostrarModal, setMostrarModal] = useState(false);
-  const [formData, setFormData] = useState({ nombre_servicio: '', descripcion: '', costo_base: '' });
+  const [editId, setEditId] = useState(null);
+  const [formData, setFormData] = useState({ nombre_servicio: '', activo: 1 });
+  const [mensaje, setMensaje] = useState(null);
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const cargar = async () => {
+    try {
+      const res = await getServicios();
+      if (res.success) setServicios(res.data);
+    } catch (err) {
+      setMensaje({ tipo: 'danger', texto: err.message });
+    }
+  };
 
-  const handleSubmit = (e) => {
+  useEffect(() => { cargar(); }, []);
+
+  const abrirNuevo = () => {
+    setEditId(null);
+    setFormData({ nombre_servicio: '', activo: 1 });
+    setMostrarModal(true);
+  };
+
+  const abrirEditar = (s) => {
+    setEditId(s.id_servicio);
+    setFormData({ nombre_servicio: s.nombre_servicio, activo: s.activo });
+    setMostrarModal(true);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setServicios([...servicios, { ...formData, id: Date.now() }]);
-    setMostrarModal(false);
-    setFormData({ nombre_servicio: '', descripcion: '', costo_base: '' });
+    try {
+      const res = editId
+        ? await actualizarServicio(editId, formData)
+        : await crearServicio(formData);
+      setMensaje({ tipo: res.success ? 'success' : 'danger', texto: res.message });
+      if (res.success) {
+        setMostrarModal(false);
+        cargar();
+      }
+    } catch (err) {
+      setMensaje({ tipo: 'danger', texto: err.message });
+    }
+  };
+
+  const handleEliminar = async (id) => {
+    if (!window.confirm('¿Eliminar este servicio?')) return;
+    try {
+      const res = await eliminarServicio(id);
+      setMensaje({ tipo: res.success ? 'success' : 'danger', texto: res.message });
+      if (res.success) cargar();
+    } catch (err) {
+      setMensaje({ tipo: 'danger', texto: err.message });
+    }
   };
 
   return (
-    <div>
+    <div className="p-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2>Gestión de Servicios</h2>
-        <button className="btn btn-primary" onClick={() => setMostrarModal(true)}>Nuevo Servicio</button>
+        <button className="btn btn-primary" onClick={abrirNuevo}>Nuevo Servicio</button>
       </div>
+
+      {mensaje && (
+        <div className={`alert alert-${mensaje.tipo} alert-dismissible`}>
+          {mensaje.texto}
+          <button type="button" className="btn-close" onClick={() => setMensaje(null)}></button>
+        </div>
+      )}
+
       <table className="table table-striped">
         <thead className="table-dark">
-          <tr><th>Servicio</th><th>Descripción</th><th>Costo Base</th><th>Acciones</th></tr>
+          <tr><th>ID</th><th>Servicio</th><th>Estado</th><th>Acciones</th></tr>
         </thead>
         <tbody>
-          {servicios.map(servicio => (
-            <tr key={servicio.id}>
-              <td>{servicio.nombre_servicio}</td><td>{servicio.descripcion}</td><td>{servicio.costo_base}</td>
+          {servicios.map((s) => (
+            <tr key={s.id_servicio}>
+              <td>{s.id_servicio}</td>
+              <td>{s.nombre_servicio}</td>
               <td>
-                <button className="btn btn-sm btn-warning me-2">Editar</button>
-                <button className="btn btn-sm btn-danger">Eliminar</button>
+                <span className={`badge ${s.activo === 1 ? 'bg-success' : 'bg-secondary'}`}>
+                  {s.activo === 1 ? 'Activo' : 'Inactivo'}
+                </span>
+              </td>
+              <td>
+                <button className="btn btn-sm btn-warning me-2" onClick={() => abrirEditar(s)}>Editar</button>
+                <button className="btn btn-sm btn-danger" onClick={() => handleEliminar(s.id_servicio)}>Eliminar</button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+
       {mostrarModal && (
         <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Formulario Servicio</h5>
+                <h5 className="modal-title">{editId ? 'Editar Servicio' : 'Nuevo Servicio'}</h5>
                 <button type="button" className="btn-close" onClick={() => setMostrarModal(false)}></button>
               </div>
               <form onSubmit={handleSubmit}>
                 <div className="modal-body">
-                  <input type="text" name="nombre_servicio" placeholder="Nombre Servicio" className="form-control mb-2" value={formData.nombre_servicio} onChange={handleChange} required />
-                  <input type="text" name="descripcion" placeholder="Descripción" className="form-control mb-2" value={formData.descripcion} onChange={handleChange} required />
-                  <input type="number" name="costo_base" placeholder="Costo Base" className="form-control mb-2" value={formData.costo_base} onChange={handleChange} required />
+                  <input type="text" placeholder="Nombre del servicio" className="form-control mb-2" value={formData.nombre_servicio} onChange={(e) => setFormData({ ...formData, nombre_servicio: e.target.value })} required />
+                  {editId && (
+                    <select className="form-select" value={formData.activo} onChange={(e) => setFormData({ ...formData, activo: Number(e.target.value) })}>
+                      <option value={1}>Activo</option>
+                      <option value={0}>Inactivo</option>
+                    </select>
+                  )}
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-secondary" onClick={() => setMostrarModal(false)}>Cancelar</button>

@@ -1,55 +1,120 @@
-export const obtenerVacunaciones = async () => {
-  return {
-    success: true,
-    data: [
-      {
-        id: 1,
-        paciente_id: 1,
-        paciente_nombre: 'Max',
-        producto_id: 101,
-        vacuna_nombre: 'Vacuna Antirrábica',
-        fecha_aplicacion: '2026-10-15',
-        fecha_proxima_dosis: '2026-11-25',
-        observaciones: 'Sin reacciones adversas'
-      }
-    ],
-    message: 'Historial obtenido'
-  };
+import api, { USE_MOCKS } from './api';
+
+// TODO: PATCH TEMPORAL - mocks en memoria para vacunaciones y recordatorios
+let mockVacunaciones = [
+  {
+    id_vacunacion: 1,
+    id_paciente: 1,
+    nombre_paciente: 'Max',
+    nombre_especie: 'Canino',
+    dueno: 'Juan Pérez',
+    id_producto: 103,
+    vacuna: 'Vacuna Antirrábica',
+    id_usuario: 2,
+    veterinario: 'Carlos Castro',
+    fecha_aplicacion: '2026-10-15',
+    fecha_proxima_dosis: '2026-11-25',
+    observaciones: 'Sin reacciones adversas',
+    estado: 0,
+  },
+  {
+    id_vacunacion: 2,
+    id_paciente: 2,
+    nombre_paciente: 'Luna',
+    nombre_especie: 'Felino',
+    dueno: 'María Gómez',
+    id_producto: 104,
+    vacuna: 'Vacuna Óctuple',
+    id_usuario: 2,
+    veterinario: 'Carlos Castro',
+    fecha_aplicacion: '2026-10-01',
+    fecha_proxima_dosis: '2026-11-10',
+    observaciones: 'Control pendiente',
+    estado: 0,
+  },
+];
+
+export const obtenerVacunaciones = async (idPaciente = null) => {
+  if (USE_MOCKS) {
+    const lista = idPaciente
+      ? mockVacunaciones.filter((v) => v.id_paciente === Number(idPaciente))
+      : mockVacunaciones;
+    return { success: true, data: [...lista], message: 'OK' };
+  }
+  return api.get('/vacunaciones', { params: idPaciente ? { id_paciente: idPaciente } : {} });
 };
 
 export const registrarVacunacion = async (payload) => {
-  return {
-    success: true,
-    data: { id: Date.now(), ...payload },
-    message: 'Vacunación registrada'
-  };
+  if (USE_MOCKS) {
+    const nueva = {
+      id_vacunacion: Date.now(),
+      id_paciente: Number(payload.id_paciente),
+      nombre_paciente: payload.paciente_nombre || `Paciente #${payload.id_paciente}`,
+      id_producto: Number(payload.id_producto),
+      vacuna: payload.vacuna_nombre || `Vacuna #${payload.id_producto}`,
+      id_usuario: payload.id_usuario,
+      fecha_aplicacion: payload.fecha_aplicacion,
+      fecha_proxima_dosis: payload.fecha_proxima_dosis,
+      observaciones: payload.observaciones || '',
+      estado: 0,
+    };
+    mockVacunaciones = [nueva, ...mockVacunaciones];
+    return { success: true, data: nueva, message: 'OK: Vacunacion registrada correctamente.' };
+  }
+  return api.post('/vacunaciones', payload);
 };
 
-export const obtenerRecordatorios = async () => {
-  return {
-    success: true,
-    data: [
-      {
-        id: 1,
-        mascota: 'Max',
-        vacuna: 'Vacuna Antirrábica',
-        fecha_proxima_dosis: '2026-11-25',
-        estado: 'Próxima',
-        dueno: 'Juan Pérez',
+export const aplicarRefuerzoVacuna = async (idVacunacionAnterior, payload) => {
+  if (USE_MOCKS) {
+    const anterior = mockVacunaciones.find((v) => v.id_vacunacion === Number(idVacunacionAnterior));
+    if (!anterior) {
+      return { success: false, data: null, message: 'ERROR: No se encontro el registro de vacunacion anterior.' };
+    }
+    mockVacunaciones = mockVacunaciones.map((v) =>
+      v.id_vacunacion === Number(idVacunacionAnterior) ? { ...v, estado: 1 } : v
+    );
+    const nueva = {
+      ...anterior,
+      id_vacunacion: Date.now(),
+      id_usuario: payload.id_usuario,
+      fecha_aplicacion: payload.fecha_aplicacion,
+      fecha_proxima_dosis: payload.fecha_proxima_dosis,
+      observaciones: payload.observaciones || '',
+      estado: 0,
+    };
+    mockVacunaciones = [nueva, ...mockVacunaciones];
+    return {
+      success: true,
+      data: nueva,
+      message: 'OK: Refuerzo aplicado y nueva dosis programada en la misma transaccion.',
+    };
+  }
+  return api.post(`/vacunaciones/${idVacunacionAnterior}/refuerzo`, payload);
+};
+
+export const obtenerRecordatorios = async (fechaDesde = null, fechaHasta = null) => {
+  if (USE_MOCKS) {
+    const pendientes = mockVacunaciones
+      .filter((v) => v.estado === 0)
+      .filter((v) => !fechaDesde || v.fecha_proxima_dosis >= fechaDesde)
+      .filter((v) => !fechaHasta || v.fecha_proxima_dosis <= fechaHasta)
+      .map((v) => ({
+        id_vacunacion: v.id_vacunacion,
+        mascota: v.nombre_paciente,
+        vacuna: v.vacuna,
+        fecha_proxima_dosis: v.fecha_proxima_dosis,
+        estado: v.fecha_proxima_dosis < '2026-11-25' ? 'Vencida' : 'Próxima',
+        dueno: v.dueno,
         telefono: '987654321',
-        correo: 'juan@mail.com'
-      },
-      {
-        id: 2,
-        mascota: 'Luna',
-        vacuna: 'Vacuna Óctuple',
-        fecha_proxima_dosis: '2026-11-10',
-        estado: 'Vencida',
-        dueno: 'María Gómez',
-        telefono: '912345678',
-        correo: 'maria@mail.com'
-      }
-    ],
-    message: 'Recordatorios obtenidos'
-  };
+        correo: 'contacto@mail.com',
+        observaciones: v.observaciones,
+      }));
+    return { success: true, data: pendientes, message: 'OK' };
+  }
+  return api.get('/reportes/vacunas-pendientes', {
+    params: {
+      ...(fechaDesde ? { desde: fechaDesde } : {}),
+      ...(fechaHasta ? { hasta: fechaHasta } : {}),
+    },
+  });
 };

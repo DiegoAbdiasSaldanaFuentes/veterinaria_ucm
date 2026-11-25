@@ -1,59 +1,106 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getRecetas, actualizarReceta, eliminarReceta, getProductos } from '../../services/mantenedoresService';
 
 export default function RecetasMedicas() {
-  const [recetas, setRecetas] = useState([
-    { id: 1, ficha_medica_id: '1', medicamentos: 'Meloxicam 5mg', indicaciones: '1 al día' }
-  ]);
+  const [recetas, setRecetas] = useState([]);
+  const [productos, setProductos] = useState([]);
   const [mostrarModal, setMostrarModal] = useState(false);
-  const [formData, setFormData] = useState({ ficha_medica_id: '', medicamentos: '', indicaciones: '' });
+  const [editId, setEditId] = useState(null);
+  const [mensaje, setMensaje] = useState(null);
+  const [formData, setFormData] = useState({ id_producto: '', indicaciones: '' });
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const cargar = async () => {
+    try {
+      const [resR, resP] = await Promise.all([getRecetas(), getProductos()]);
+      if (resR.success) setRecetas(resR.data);
+      if (resP.success) setProductos(resP.data);
+    } catch (err) {
+      setMensaje({ tipo: 'danger', texto: err.message });
+    }
+  };
 
-  const handleSubmit = (e) => {
+  useEffect(() => { cargar(); }, []);
+
+  const abrirEditar = (r) => {
+    setEditId(r.id_receta);
+    setFormData({ id_producto: r.id_producto, indicaciones: r.indicaciones });
+    setMostrarModal(true);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setRecetas([...recetas, { ...formData, id: Date.now() }]);
-    setMostrarModal(false);
-    setFormData({ ficha_medica_id: '', medicamentos: '', indicaciones: '' });
+    try {
+      const res = await actualizarReceta(editId, formData);
+      setMensaje({ tipo: res.success ? 'success' : 'danger', texto: res.message });
+      if (res.success) {
+        setMostrarModal(false);
+        cargar();
+      }
+    } catch (err) {
+      setMensaje({ tipo: 'danger', texto: err.message });
+    }
+  };
+
+  const handleEliminar = async (id) => {
+    if (!window.confirm('¿Eliminar esta receta?')) return;
+    try {
+      const res = await eliminarReceta(id);
+      setMensaje({ tipo: res.success ? 'success' : 'danger', texto: res.message });
+      if (res.success) cargar();
+    } catch (err) {
+      setMensaje({ tipo: 'danger', texto: err.message });
+    }
   };
 
   return (
-    <div>
+    <div className="p-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2>Recetas Médicas</h2>
-        <button className="btn btn-primary" onClick={() => setMostrarModal(true)}>Nueva Receta</button>
       </div>
+
+      {mensaje && (
+        <div className={`alert alert-${mensaje.tipo} alert-dismissible`}>
+          {mensaje.texto}
+          <button type="button" className="btn-close" onClick={() => setMensaje(null)}></button>
+        </div>
+      )}
+
       <table className="table table-striped">
         <thead className="table-dark">
-          <tr><th>ID Ficha Médica</th><th>Medicamentos</th><th>Indicaciones</th><th>Acciones</th></tr>
+          <tr><th>Receta #</th><th>Ficha #</th><th>Paciente</th><th>Medicamento</th><th>Indicaciones</th><th>Acciones</th></tr>
         </thead>
         <tbody>
-          {recetas.map(receta => (
-            <tr key={receta.id}>
-              <td>{receta.ficha_medica_id}</td><td>{receta.medicamentos}</td><td>{receta.indicaciones}</td>
+          {recetas.map((r) => (
+            <tr key={r.id_receta}>
+              <td>{r.id_receta}</td>
+              <td>{r.id_ficha}</td>
+              <td>{r.nombre_paciente}</td>
+              <td>{r.medicamento}</td>
+              <td>{r.indicaciones}</td>
               <td>
-                <button className="btn btn-sm btn-warning me-2">Editar</button>
-                <button className="btn btn-sm btn-danger">Eliminar</button>
+                <button className="btn btn-sm btn-warning me-2" onClick={() => abrirEditar(r)}>Editar</button>
+                <button className="btn btn-sm btn-danger" onClick={() => handleEliminar(r.id_receta)}>Eliminar</button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+
       {mostrarModal && (
         <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Formulario Receta Médica</h5>
+                <h5 className="modal-title">Editar Receta #{editId}</h5>
                 <button type="button" className="btn-close" onClick={() => setMostrarModal(false)}></button>
               </div>
               <form onSubmit={handleSubmit}>
                 <div className="modal-body">
-                  <select name="ficha_medica_id" className="form-control mb-2" value={formData.ficha_medica_id} onChange={handleChange} required>
-                    <option value="">Seleccione Ficha Médica</option>
-                    <option value="1">Ficha #1</option>
+                  <select className="form-select mb-2" value={formData.id_producto} onChange={(e) => setFormData({ ...formData, id_producto: e.target.value })} required>
+                    <option value="">Seleccione Producto/Medicamento</option>
+                    {productos.map((p) => <option key={p.id_producto} value={p.id_producto}>{p.nombre_producto}</option>)}
                   </select>
-                  <input type="text" name="medicamentos" placeholder="Medicamentos" className="form-control mb-2" value={formData.medicamentos} onChange={handleChange} required />
-                  <input type="text" name="indicaciones" placeholder="Indicaciones" className="form-control mb-2" value={formData.indicaciones} onChange={handleChange} required />
+                  <input type="text" placeholder="Indicaciones" className="form-control" value={formData.indicaciones} onChange={(e) => setFormData({ ...formData, indicaciones: e.target.value })} required />
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-secondary" onClick={() => setMostrarModal(false)}>Cancelar</button>
