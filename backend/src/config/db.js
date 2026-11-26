@@ -3,7 +3,7 @@ require('dotenv').config();
 
 const dbConfig = {
   user: process.env.DB_USER || 'ES3',
-  password: process.env.DB_PASSWORD || 'Admin1234',
+  password: process.env.DB_PASSWORD || 'INTRODUCIR_CONTRASEÑA_DB',
   connectString: process.env.DB_CONNECT_STRING || '192.168.56.1:1522/XEPDB1',
 };
 
