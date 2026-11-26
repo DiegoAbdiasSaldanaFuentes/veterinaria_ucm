@@ -21,7 +21,22 @@ export default function Pacientes() {
     }
   };
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    let activo = true;
+    Promise.all([getPacientes(), getClientes(), getEspecies()])
+      .then(([resPa, resCl, resEs]) => {
+        if (!activo) return;
+        if (resPa.success) setPacientes(resPa.data);
+        if (resCl.success) setClientes(resCl.data);
+        if (resEs.success) setEspecies(resEs.data);
+      })
+      .catch((err) => {
+        if (activo) setMensaje({ tipo: 'danger', texto: err.message });
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   const abrirNuevo = () => {
     setEditId(null);

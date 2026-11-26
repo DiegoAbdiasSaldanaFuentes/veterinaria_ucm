@@ -1,5 +1,19 @@
 const { oracledb, getConnection } = require('../config/db');
 
+function normalizeRow(row) {
+  if (!row || typeof row !== 'object') return row;
+  const normalized = {};
+  for (const [key, value] of Object.entries(row)) {
+    normalized[key.toLowerCase()] = value;
+  }
+  return normalized;
+}
+
+function normalizeRows(rows) {
+  if (!Array.isArray(rows)) return [];
+  return rows.map(normalizeRow);
+}
+
 function mapOracleError(err) {
   const message = err && err.message ? err.message : 'Error inesperado en la base de datos';
   const oraMatch = message.match(/ORA-(\d{5}):\s*([^\n]+)/);
@@ -22,9 +36,13 @@ async function readCursor(cursor) {
   if (!cursor) return [];
   try {
     const rows = await cursor.getRows(500);
-    return rows || [];
+    return normalizeRows(rows || []);
   } finally {
-    await cursor.close();
+    try {
+      await cursor.close();
+    } catch (_) {
+      // Ignorar si ya estaba cerrado
+    }
   }
 }
 
@@ -42,6 +60,10 @@ async function executePlsql(plsqlBlock, binds = {}, options = {}) {
     for (const [key, val] of Object.entries(outBinds)) {
       if (val && typeof val.getRows === 'function') {
         parsedData[key] = await readCursor(val);
+      } else if (Array.isArray(val)) {
+        parsedData[key] = normalizeRows(val);
+      } else if (val && typeof val === 'object' && !(val instanceof Date) && !Buffer.isBuffer(val)) {
+        parsedData[key] = normalizeRow(val);
       } else {
         parsedData[key] = val;
       }
@@ -66,11 +88,17 @@ async function executePlsql(plsqlBlock, binds = {}, options = {}) {
     wrapped.statusCode = mapped.statusCode;
     throw wrapped;
   } finally {
-    await conn.close();
+    try {
+      await conn.close();
+    } catch (_) {
+      // Ignorar si ya estaba cerrada
+    }
   }
 }
 
 module.exports = {
   oracledb,
   executePlsql,
+  normalizeRow,
+  normalizeRows,
 };

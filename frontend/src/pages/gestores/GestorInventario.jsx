@@ -21,7 +21,21 @@ export default function GestorInventario() {
     }
   };
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    let activo = true;
+    Promise.all([getProveedores(), getProductos()])
+      .then(([resPv, resPr]) => {
+        if (!activo) return;
+        if (resPv.success) setProveedores(resPv.data);
+        if (resPr.success) setProductos(resPr.data);
+      })
+      .catch((err) => {
+        if (activo) setMensaje({ tipo: 'danger', texto: err.message });
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   const productosFiltrados = filtroProveedor
     ? productos.filter((p) => Number(p.id_proveedor) === Number(filtroProveedor))

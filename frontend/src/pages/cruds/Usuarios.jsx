@@ -26,7 +26,21 @@ export default function Usuarios() {
     }
   };
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    let activo = true;
+    Promise.all([getUsuarios(), getRoles()])
+      .then(([resU, resR]) => {
+        if (!activo) return;
+        if (resU.success) setUsuarios(resU.data);
+        if (resR.success) setRoles(resR.data);
+      })
+      .catch((err) => {
+        if (activo) setMensaje({ tipo: 'danger', texto: err.message });
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   const abrirNuevo = () => {
     setEditId(null);
@@ -50,9 +64,12 @@ export default function Usuarios() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = editId
+        ? { ...formData, clave: formData.clave || null }
+        : formData;
       const res = editId
-        ? await actualizarUsuario(editId, formData)
-        : await crearUsuario(formData);
+        ? await actualizarUsuario(editId, payload)
+        : await crearUsuario(payload);
       setMensaje({ tipo: res.success ? 'success' : 'danger', texto: res.message });
       if (res.success) {
         setMostrarModal(false);

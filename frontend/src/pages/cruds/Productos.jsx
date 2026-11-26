@@ -27,7 +27,21 @@ export default function Productos() {
     }
   };
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    let activo = true;
+    Promise.all([getProductos(), getProveedores()])
+      .then(([resPr, resPv]) => {
+        if (!activo) return;
+        if (resPr.success) setProductos(resPr.data);
+        if (resPv.success) setProveedores(resPv.data);
+      })
+      .catch((err) => {
+        if (activo) setMensaje({ tipo: 'danger', texto: err.message });
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   const abrirNuevo = () => {
     setEditId(null);

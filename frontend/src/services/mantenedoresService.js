@@ -26,7 +26,7 @@ let mockServicios = [
 // --- CLIENTES ---
 export const getClientes = async () => {
   if (USE_MOCKS) return { success: true, data: [...mockClientes], message: 'OK' };
-  return api.get('/clientes');
+  return api.get('/mantenedores/clientes');
 };
 
 export const crearCliente = async (payload) => {
@@ -42,7 +42,7 @@ export const crearCliente = async (payload) => {
     mockClientes.push(nuevo);
     return { success: true, data: nuevo, message: 'OK: Cliente registrado correctamente.' };
   }
-  return api.post('/clientes', payload);
+  return api.post('/mantenedores/clientes', payload);
 };
 
 export const actualizarCliente = async (id, payload) => {
@@ -52,7 +52,7 @@ export const actualizarCliente = async (id, payload) => {
     );
     return { success: true, data: null, message: 'OK: Cliente actualizado correctamente.' };
   }
-  return api.put(`/clientes/${id}`, payload);
+  return api.put(`/mantenedores/clientes/${id}`, payload);
 };
 
 export const eliminarCliente = async (id) => {
@@ -60,13 +60,13 @@ export const eliminarCliente = async (id) => {
     mockClientes = mockClientes.filter((c) => c.id_cliente !== id);
     return { success: true, data: null, message: 'OK: Cliente eliminado correctamente.' };
   }
-  return api.delete(`/clientes/${id}`);
+  return api.delete(`/mantenedores/clientes/${id}`);
 };
 
 // --- ESPECIES ---
 export const getEspecies = async () => {
   if (USE_MOCKS) return { success: true, data: [...mockEspecies], message: 'OK' };
-  return api.get('/especies');
+  return api.get('/mantenedores/especies');
 };
 
 export const crearEspecie = async (payload) => {
@@ -75,7 +75,7 @@ export const crearEspecie = async (payload) => {
     mockEspecies.push(nueva);
     return { success: true, data: nueva, message: 'OK: Especie registrada correctamente.' };
   }
-  return api.post('/especies', payload);
+  return api.post('/mantenedores/especies', payload);
 };
 
 export const actualizarEspecie = async (id, payload) => {
@@ -85,7 +85,7 @@ export const actualizarEspecie = async (id, payload) => {
     );
     return { success: true, data: null, message: 'OK: Especie actualizada correctamente.' };
   }
-  return api.put(`/especies/${id}`, payload);
+  return api.put(`/mantenedores/especies/${id}`, payload);
 };
 
 export const eliminarEspecie = async (id) => {
@@ -93,13 +93,13 @@ export const eliminarEspecie = async (id) => {
     mockEspecies = mockEspecies.filter((e) => e.id_especie !== id);
     return { success: true, data: null, message: 'OK: Especie eliminada correctamente.' };
   }
-  return api.delete(`/especies/${id}`);
+  return api.delete(`/mantenedores/especies/${id}`);
 };
 
 // --- ROLES ---
 export const getRoles = async () => {
   if (USE_MOCKS) return { success: true, data: [...mockRoles], message: 'OK' };
-  return api.get('/roles');
+  return api.get('/mantenedores/roles');
 };
 
 export const crearRol = async (payload) => {
@@ -108,7 +108,7 @@ export const crearRol = async (payload) => {
     mockRoles.push(nuevo);
     return { success: true, data: nuevo, message: 'OK: Rol registrado correctamente.' };
   }
-  return api.post('/roles', payload);
+  return api.post('/mantenedores/roles', payload);
 };
 
 export const actualizarRol = async (id, payload) => {
@@ -118,7 +118,7 @@ export const actualizarRol = async (id, payload) => {
     );
     return { success: true, data: null, message: 'OK: Rol actualizado correctamente.' };
   }
-  return api.put(`/roles/${id}`, payload);
+  return api.put(`/mantenedores/roles/${id}`, payload);
 };
 
 export const eliminarRol = async (id) => {
@@ -126,13 +126,13 @@ export const eliminarRol = async (id) => {
     mockRoles = mockRoles.filter((r) => r.id_rol !== id);
     return { success: true, data: null, message: 'OK: Rol eliminado correctamente.' };
   }
-  return api.delete(`/roles/${id}`);
+  return api.delete(`/mantenedores/roles/${id}`);
 };
 
 // --- SERVICIOS ---
 export const getServicios = async () => {
   if (USE_MOCKS) return { success: true, data: [...mockServicios], message: 'OK' };
-  return api.get('/servicios');
+  return api.get('/mantenedores/servicios');
 };
 
 export const crearServicio = async (payload) => {
@@ -141,7 +141,7 @@ export const crearServicio = async (payload) => {
     mockServicios.push(nuevo);
     return { success: true, data: nuevo, message: 'OK: Servicio registrado correctamente.' };
   }
-  return api.post('/servicios', payload);
+  return api.post('/mantenedores/servicios', payload);
 };
 
 export const actualizarServicio = async (id, payload) => {
@@ -151,7 +151,7 @@ export const actualizarServicio = async (id, payload) => {
     );
     return { success: true, data: null, message: 'OK: Servicio actualizado correctamente.' };
   }
-  return api.put(`/servicios/${id}`, payload);
+  return api.put(`/mantenedores/servicios/${id}`, payload);
 };
 
 export const eliminarServicio = async (id) => {
@@ -159,7 +159,7 @@ export const eliminarServicio = async (id) => {
     mockServicios = mockServicios.filter((s) => s.id_servicio !== id);
     return { success: true, data: null, message: 'OK: Servicio eliminado correctamente.' };
   }
-  return api.delete(`/servicios/${id}`);
+  return api.delete(`/mantenedores/servicios/${id}`);
 };
 
 // TODO: PATCH TEMPORAL - mocks en memoria para Tanda 2 de mantenedores
@@ -192,7 +192,7 @@ let mockRecetas = [
 // --- USUARIOS ---
 export const getUsuarios = async () => {
   if (USE_MOCKS) return { success: true, data: [...mockUsuarios], message: 'OK' };
-  return api.get('/usuarios');
+  return api.get('/mantenedores/usuarios');
 };
 
 export const crearUsuario = async (payload) => {
@@ -210,7 +210,7 @@ export const crearUsuario = async (payload) => {
     mockUsuarios.push(nuevo);
     return { success: true, data: nuevo, message: 'OK: Usuario registrado correctamente.' };
   }
-  return api.post('/usuarios', payload);
+  return api.post('/mantenedores/usuarios', payload);
 };
 
 export const actualizarUsuario = async (id, payload) => {
@@ -230,7 +230,7 @@ export const actualizarUsuario = async (id, payload) => {
     );
     return { success: true, data: null, message: 'OK: Usuario actualizado correctamente.' };
   }
-  return api.put(`/usuarios/${id}`, payload);
+  return api.put(`/mantenedores/usuarios/${id}`, payload);
 };
 
 export const eliminarUsuario = async (id) => {
@@ -238,13 +238,13 @@ export const eliminarUsuario = async (id) => {
     mockUsuarios = mockUsuarios.filter((u) => u.id_usuario !== id);
     return { success: true, data: null, message: 'OK: Usuario eliminado correctamente.' };
   }
-  return api.delete(`/usuarios/${id}`);
+  return api.delete(`/mantenedores/usuarios/${id}`);
 };
 
 // --- PROVEEDORES ---
 export const getProveedores = async () => {
   if (USE_MOCKS) return { success: true, data: [...mockProveedores], message: 'OK' };
-  return api.get('/proveedores');
+  return api.get('/mantenedores/proveedores');
 };
 
 export const crearProveedor = async (payload) => {
@@ -259,7 +259,7 @@ export const crearProveedor = async (payload) => {
     mockProveedores.push(nuevo);
     return { success: true, data: nuevo, message: 'OK: Proveedor registrado correctamente.' };
   }
-  return api.post('/proveedores', payload);
+  return api.post('/mantenedores/proveedores', payload);
 };
 
 export const actualizarProveedor = async (id, payload) => {
@@ -277,7 +277,7 @@ export const actualizarProveedor = async (id, payload) => {
     );
     return { success: true, data: null, message: 'OK: Proveedor actualizado correctamente.' };
   }
-  return api.put(`/proveedores/${id}`, payload);
+  return api.put(`/mantenedores/proveedores/${id}`, payload);
 };
 
 export const eliminarProveedor = async (id) => {
@@ -285,13 +285,13 @@ export const eliminarProveedor = async (id) => {
     mockProveedores = mockProveedores.filter((p) => p.id_proveedor !== id);
     return { success: true, data: null, message: 'OK: Proveedor eliminado correctamente.' };
   }
-  return api.delete(`/proveedores/${id}`);
+  return api.delete(`/mantenedores/proveedores/${id}`);
 };
 
 // --- PRODUCTOS ---
 export const getProductos = async () => {
   if (USE_MOCKS) return { success: true, data: [...mockProductos], message: 'OK' };
-  return api.get('/productos');
+  return api.get('/mantenedores/productos');
 };
 
 export const crearProducto = async (payload) => {
@@ -311,7 +311,7 @@ export const crearProducto = async (payload) => {
     mockProductos.push(nuevo);
     return { success: true, data: nuevo, message: 'OK: Producto registrado correctamente.' };
   }
-  return api.post('/productos', payload);
+  return api.post('/mantenedores/productos', payload);
 };
 
 export const actualizarProducto = async (id, payload) => {
@@ -334,7 +334,7 @@ export const actualizarProducto = async (id, payload) => {
     );
     return { success: true, data: null, message: 'OK: Producto actualizado correctamente.' };
   }
-  return api.put(`/productos/${id}`, payload);
+  return api.put(`/mantenedores/productos/${id}`, payload);
 };
 
 export const eliminarProducto = async (id) => {
@@ -342,13 +342,13 @@ export const eliminarProducto = async (id) => {
     mockProductos = mockProductos.filter((p) => p.id_producto !== id);
     return { success: true, data: null, message: 'OK: Producto eliminado correctamente.' };
   }
-  return api.delete(`/productos/${id}`);
+  return api.delete(`/mantenedores/productos/${id}`);
 };
 
 // --- PACIENTES ---
 export const getPacientes = async () => {
   if (USE_MOCKS) return { success: true, data: [...mockPacientes], message: 'OK' };
-  return api.get('/pacientes');
+  return api.get('/mantenedores/pacientes');
 };
 
 export const crearPaciente = async (payload) => {
@@ -368,7 +368,7 @@ export const crearPaciente = async (payload) => {
     mockPacientes.push(nuevo);
     return { success: true, data: nuevo, message: 'OK: Paciente registrado correctamente.' };
   }
-  return api.post('/pacientes', payload);
+  return api.post('/mantenedores/pacientes', payload);
 };
 
 export const actualizarPaciente = async (id, payload) => {
@@ -391,7 +391,7 @@ export const actualizarPaciente = async (id, payload) => {
     );
     return { success: true, data: null, message: 'OK: Paciente actualizado correctamente.' };
   }
-  return api.put(`/pacientes/${id}`, payload);
+  return api.put(`/mantenedores/pacientes/${id}`, payload);
 };
 
 export const eliminarPaciente = async (id) => {
@@ -399,13 +399,13 @@ export const eliminarPaciente = async (id) => {
     mockPacientes = mockPacientes.filter((p) => p.id_paciente !== id);
     return { success: true, data: null, message: 'OK: Paciente eliminado correctamente.' };
   }
-  return api.delete(`/pacientes/${id}`);
+  return api.delete(`/mantenedores/pacientes/${id}`);
 };
 
 // --- FICHAS Y RECETAS (CRUD MANTENEDOR) ---
 export const getFichas = async () => {
   if (USE_MOCKS) return { success: true, data: [...mockFichas], message: 'OK' };
-  return api.get('/fichas');
+  return api.get('/mantenedores/fichas-clinicas');
 };
 
 export const actualizarFicha = async (id, payload) => {
@@ -417,7 +417,7 @@ export const actualizarFicha = async (id, payload) => {
     );
     return { success: true, data: null, message: 'OK: Ficha clínica actualizada correctamente.' };
   }
-  return api.put(`/fichas/${id}`, payload);
+  return api.put(`/mantenedores/fichas-clinicas/${id}`, payload);
 };
 
 export const eliminarFicha = async (id) => {
@@ -425,12 +425,12 @@ export const eliminarFicha = async (id) => {
     mockFichas = mockFichas.filter((f) => f.id_ficha !== id);
     return { success: true, data: null, message: 'OK: Ficha clínica eliminada correctamente.' };
   }
-  return api.delete(`/fichas/${id}`);
+  return api.delete(`/mantenedores/fichas-clinicas/${id}`);
 };
 
 export const getRecetas = async () => {
   if (USE_MOCKS) return { success: true, data: [...mockRecetas], message: 'OK' };
-  return api.get('/recetas');
+  return api.get('/mantenedores/recetas');
 };
 
 export const actualizarReceta = async (id, payload) => {
@@ -448,7 +448,7 @@ export const actualizarReceta = async (id, payload) => {
     );
     return { success: true, data: null, message: 'OK: Receta actualizada correctamente.' };
   }
-  return api.put(`/recetas/${id}`, payload);
+  return api.put(`/mantenedores/recetas/${id}`, payload);
 };
 
 export const eliminarReceta = async (id) => {
@@ -456,5 +456,5 @@ export const eliminarReceta = async (id) => {
     mockRecetas = mockRecetas.filter((r) => r.id_receta !== id);
     return { success: true, data: null, message: 'OK: Receta eliminada correctamente.' };
   }
-  return api.delete(`/recetas/${id}`);
+  return api.delete(`/mantenedores/recetas/${id}`);
 };

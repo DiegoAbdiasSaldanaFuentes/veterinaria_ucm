@@ -30,7 +30,21 @@ export default function GestorClinico() {
     }
   };
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    let activo = true;
+    Promise.all([getCitas(), getProductos()])
+      .then(([resCi, resPr]) => {
+        if (!activo) return;
+        if (resCi.success) setCitas(resCi.data.filter((c) => c.estado !== 'CANCELADA'));
+        if (resPr.success) setProductos(resPr.data);
+      })
+      .catch((err) => {
+        if (activo) setMensaje({ tipo: 'danger', texto: err.message });
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   const registrarFicha = async (e) => {
     e.preventDefault();

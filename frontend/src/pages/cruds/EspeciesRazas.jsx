@@ -17,7 +17,19 @@ export default function EspeciesRazas() {
     }
   };
 
-  useEffect(() => { cargar(); }, []);
+useEffect(() => {
+    let activo = true;
+    getEspecies()
+      .then((res) => {
+        if (activo && res.success) setEspecies(res.data);
+      })
+      .catch((err) => {
+        if (activo) setMensaje({ tipo: 'danger', texto: err.message });
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   const abrirNuevo = () => {
     setEditId(null);

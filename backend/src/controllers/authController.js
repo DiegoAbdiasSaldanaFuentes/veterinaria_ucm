@@ -1,12 +1,12 @@
-const { oracledb, executePlsql } = require('../utils/oracleHelper');
+const { oracledb, executePlsql, normalizeRow } = require('../utils/oracleHelper');
 
 async function login(req, res, next) {
   try {
-    const { nombre_usuario, nombreUsuario, clave_hash, password } = req.body;
+    const { nombre_usuario, nombreUsuario, clave, clave_hash, password } = req.body || {};
     const usuario = (nombre_usuario || nombreUsuario || '').trim();
-    const clave = clave_hash || password || '';
+    const credencial = clave || clave_hash || password || '';
 
-    if (!usuario || !clave) {
+    if (!usuario || !credencial) {
       return res.status(400).json({
         success: false,
         data: null,
@@ -26,7 +26,7 @@ async function login(req, res, next) {
        END;`,
       {
         p_nombre_usuario: usuario,
-        p_clave_hash: clave,
+        p_clave_hash: credencial,
         o_id_usuario: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
         o_nombre_rol: { dir: oracledb.BIND_OUT, type: oracledb.STRING, maxSize: 100 },
         o_mensaje: { dir: oracledb.BIND_OUT, type: oracledb.STRING, maxSize: 500 },
@@ -52,11 +52,13 @@ async function login(req, res, next) {
     );
 
     const rows = userData.o_cursor || [];
-    const perfil = rows[0] || {
-      ID_USUARIO: validation.o_id_usuario,
-      NOMBRE_USUARIO: usuario,
-      NOMBRE_ROL: validation.o_nombre_rol,
-    };
+    const perfil = normalizeRow(
+      rows[0] || {
+        id_usuario: validation.o_id_usuario,
+        nombre_usuario: usuario,
+        nombre_rol: validation.o_nombre_rol,
+      }
+    );
 
     return res.status(200).json({
       success: true,
@@ -65,7 +67,7 @@ async function login(req, res, next) {
     });
   } catch (err) {
     if (err.statusCode === 400 || err.statusCode === 401) {
-      return res.status(401).json({
+      return res.status(err.statusCode).json({
         success: false,
         data: null,
         message: err.message,

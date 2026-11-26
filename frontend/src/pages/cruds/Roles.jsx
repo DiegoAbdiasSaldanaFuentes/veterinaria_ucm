@@ -17,7 +17,19 @@ export default function Roles() {
     }
   };
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    let activo = true;
+    getRoles()
+      .then((res) => {
+        if (activo && res.success) setRoles(res.data);
+      })
+      .catch((err) => {
+        if (activo) setMensaje({ tipo: 'danger', texto: err.message });
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   const abrirNuevo = () => {
     setEditId(null);

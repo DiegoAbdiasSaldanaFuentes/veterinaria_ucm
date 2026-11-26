@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { obtenerVentasMes } from '../../services/dashboardService';
 
 export default function AuditoriaFinanciera() {
@@ -8,18 +8,39 @@ export default function AuditoriaFinanciera() {
   const [ventas, setVentas] = useState([]);
   const [error, setError] = useState('');
 
-  const cargar = async () => {
-    setError('');
+  const cargar = useCallback(async (mesParam, anioParam) => {
     try {
-      const res = await obtenerVentasMes(Number(mes), Number(anio));
-      if (res.success) setVentas(res.data);
-      else setError(res.message);
+      const res = await obtenerVentasMes(Number(mesParam), Number(anioParam));
+      if (res.success) {
+        setVentas(res.data);
+        setError('');
+      } else {
+        setError(res.message);
+      }
     } catch (err) {
       setError(err.message);
     }
-  };
+  }, []);
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    let activo = true;
+    obtenerVentasMes(hoy.getMonth() + 1, hoy.getFullYear())
+      .then((res) => {
+        if (!activo) return;
+        if (res.success) {
+          setVentas(res.data);
+          setError('');
+        } else {
+          setError(res.message);
+        }
+      })
+      .catch((err) => {
+        if (activo) setError(err.message);
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   const totalMes = ventas.reduce((acc, v) => acc + Number(v.total_venta || 0), 0);
 
@@ -32,13 +53,29 @@ export default function AuditoriaFinanciera() {
         <div className="d-flex gap-2 align-items-end">
           <div>
             <label className="form-label small text-secondary">Mes (1-12)</label>
-            <input type="number" min="1" max="12" className="form-control" value={mes} onChange={(e) => setMes(e.target.value)} />
+            <input
+              type="number"
+              min="1"
+              max="12"
+              className="form-control"
+              value={mes}
+              onChange={(e) => setMes(e.target.value)}
+            />
           </div>
           <div>
             <label className="form-label small text-secondary">Año</label>
-            <input type="number" min="2020" max="2100" className="form-control" value={anio} onChange={(e) => setAnio(e.target.value)} />
+            <input
+              type="number"
+              min="2020"
+              max="2100"
+              className="form-control"
+              value={anio}
+              onChange={(e) => setAnio(e.target.value)}
+            />
           </div>
-          <button type="button" className="btn btn-primary" onClick={cargar}>Consultar</button>
+          <button type="button" className="btn btn-primary" onClick={() => cargar(mes, anio)}>
+            Consultar
+          </button>
         </div>
       </div>
 

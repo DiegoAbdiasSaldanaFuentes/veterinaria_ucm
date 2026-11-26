@@ -19,7 +19,21 @@ export default function RecetasMedicas() {
     }
   };
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    let activo = true;
+    Promise.all([getRecetas(), getProductos()])
+      .then(([resR, resP]) => {
+        if (!activo) return;
+        if (resR.success) setRecetas(resR.data);
+        if (resP.success) setProductos(resP.data);
+      })
+      .catch((err) => {
+        if (activo) setMensaje({ tipo: 'danger', texto: err.message });
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   const abrirEditar = (r) => {
     setEditId(r.id_receta);

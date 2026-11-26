@@ -1,5 +1,6 @@
 import fondoVet from '../../assets/VETUCM.jpg';
-import { useConfig } from '../../context/ConfigContext';
+import { useConfig } from '../../context/useConfig';
+
 
 export default function AsistenteConfiguracion() {
   const { modulos, toggleModulo, setModulos, finalizarConfiguracion } = useConfig();

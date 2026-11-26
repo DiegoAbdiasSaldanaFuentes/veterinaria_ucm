@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useConfig } from './context/ConfigContext';
+import { useConfig } from './context/useConfig';
 import Layout from './components/Layout';
 import Ajustes from './pages/Ajustes';
 // Importaciones de CRUDs
@@ -27,7 +27,7 @@ import RendimientoStaff from './pages/dashboards/RendimientoStaff';
 import RecordatoriosVacunacion from './pages/dashboards/RecordatoriosVacunacion';
 import Inicio from './pages/dashboards/Inicio';
 // Importacion de Autentificaciones
-import { useAuth } from './context/AuthContext';
+import { useAuth } from './context/useAuth';
 import Login from './pages/Login';
 
 function App() {

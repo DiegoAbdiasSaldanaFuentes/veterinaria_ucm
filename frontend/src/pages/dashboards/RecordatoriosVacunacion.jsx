@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../context/useAuth';
 import { obtenerRecordatorios, aplicarRefuerzoVacuna } from '../../services/vacunacionService';
 
 export default function RecordatoriosVacunacion() {
@@ -15,16 +15,28 @@ export default function RecordatoriosVacunacion() {
     observaciones: '',
   });
 
-  const cargar = async () => {
+  const cargar = useCallback(async (fDesde, fHasta) => {
     try {
-      const res = await obtenerRecordatorios(desde || null, hasta || null);
+      const res = await obtenerRecordatorios(fDesde || null, fHasta || null);
       if (res.success) setRecordatorios(res.data);
     } catch (err) {
       setMensaje({ tipo: 'danger', texto: err.message });
     }
-  };
+  }, []);
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    let activo = true;
+    obtenerRecordatorios(null, null)
+      .then((res) => {
+        if (activo && res.success) setRecordatorios(res.data);
+      })
+      .catch((err) => {
+        if (activo) setMensaje({ tipo: 'danger', texto: err.message });
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   const abrirRefuerzo = (item) => {
     setRefuerzoId(item.id_vacunacion);
@@ -45,7 +57,7 @@ export default function RecordatoriosVacunacion() {
       setMensaje({ tipo: res.success ? 'success' : 'danger', texto: res.message });
       if (res.success) {
         setRefuerzoId(null);
-        cargar();
+        cargar(desde, hasta);
       }
     } catch (err) {
       setMensaje({ tipo: 'danger', texto: err.message });
@@ -73,7 +85,9 @@ export default function RecordatoriosVacunacion() {
             <label className="form-label small text-secondary">Hasta</label>
             <input type="date" className="form-control" value={hasta} onChange={(e) => setHasta(e.target.value)} />
           </div>
-          <button type="button" className="btn btn-primary" onClick={cargar}>Filtrar</button>
+          <button type="button" className="btn btn-primary" onClick={() => cargar(desde, hasta)}>
+            Filtrar
+          </button>
         </div>
       </div>
 
@@ -95,13 +109,13 @@ export default function RecordatoriosVacunacion() {
               <tr><td colSpan="7" className="text-center">No hay recordatorios pendientes</td></tr>
             ) : (
               recordatorios.map((item) => (
-                <tr key={item.id_vacunacion || item.id}>
-                  <td>{item.mascota}</td>
+                <tr key={item.id_vacunacion}>
+                  <td>{item.nombre_paciente}</td>
                   <td>{item.vacuna}</td>
-                  <td>{item.fecha_proxima_dosis}</td>
+                  <td>{item.fecha_proxima_dosis ? String(item.fecha_proxima_dosis).slice(0, 10) : '-'}</td>
                   <td>
-                    <span className={`badge ${item.estado === 'Vencida' ? 'bg-danger' : 'bg-warning text-dark'}`}>
-                      {item.estado}
+                    <span className={`badge ${item.estado_alerta === 'Vencida' ? 'bg-danger' : 'bg-warning text-dark'}`}>
+                      {item.estado_alerta}
                     </span>
                   </td>
                   <td>{item.dueno}</td>

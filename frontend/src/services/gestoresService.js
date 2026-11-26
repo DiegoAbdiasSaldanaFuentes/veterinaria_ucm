@@ -58,7 +58,7 @@ let mockHistorialPaciente = [
 // --- VENTAS ---
 export const getVentas = async () => {
   if (USE_MOCKS) return { success: true, data: [...mockVentas], message: 'OK' };
-  return api.get('/ventas');
+  return api.get('/gestores/ventas');
 };
 
 export const crearVenta = async (payload) => {
@@ -77,7 +77,14 @@ export const crearVenta = async (payload) => {
     mockVentas = [nueva, ...mockVentas];
     return { success: true, data: nueva, message: 'OK: Venta registrada correctamente.' };
   }
-  return api.post('/ventas', payload);
+  return api.post('/gestores/ventas', payload);
+};
+
+export const agregarDetalleVenta = async (idVenta, detallePayload) => {
+  if (USE_MOCKS) {
+    return { success: true, data: null, message: 'OK: Detalle agregado.' };
+  }
+  return api.post(`/gestores/ventas/${idVenta}/detalle`, detallePayload);
 };
 
 export const anularVenta = async (idVenta) => {
@@ -87,13 +94,13 @@ export const anularVenta = async (idVenta) => {
     );
     return { success: true, data: null, message: 'OK: Venta anulada y stock restaurado correctamente.' };
   }
-  return api.patch(`/ventas/${idVenta}/anular`);
+  return api.put(`/gestores/ventas/${idVenta}/anular`);
 };
 
 // --- CITAS ---
 export const getCitas = async () => {
   if (USE_MOCKS) return { success: true, data: [...mockCitas], message: 'OK' };
-  return api.get('/citas');
+  return api.get('/gestores/citas');
 };
 
 export const getBloquesDisponibles = async (fecha = null) => {
@@ -103,7 +110,7 @@ export const getBloquesDisponibles = async (fecha = null) => {
       : mockBloquesDisponibles;
     return { success: true, data: [...filtrados], message: 'OK' };
   }
-  return api.get('/bloques/disponibles', { params: fecha ? { fecha } : {} });
+  return api.get('/gestores/bloques-disponibles', { params: fecha ? { fecha } : {} });
 };
 
 export const reservarCita = async (payload) => {
@@ -127,7 +134,7 @@ export const reservarCita = async (payload) => {
     mockBloquesDisponibles = mockBloquesDisponibles.filter((b) => b.id_bloque !== Number(payload.id_bloque));
     return { success: true, data: nueva, message: 'OK: Cita reservada correctamente.' };
   }
-  return api.post('/citas', payload);
+  return api.post('/gestores/citas', payload);
 };
 
 export const actualizarEstadoCita = async (idCita, estado) => {
@@ -135,7 +142,7 @@ export const actualizarEstadoCita = async (idCita, estado) => {
     mockCitas = mockCitas.map((c) => (c.id_cita === idCita ? { ...c, estado } : c));
     return { success: true, data: null, message: 'OK: Estado de cita actualizado correctamente.' };
   }
-  return api.patch(`/citas/${idCita}/estado`, { estado });
+  return api.put(`/gestores/citas/${idCita}/estado`, { estado });
 };
 
 // --- INVENTARIO ---
@@ -147,14 +154,14 @@ export const ingresarStock = async (payload) => {
       message: `OK: Ingreso de ${payload.cantidad} unidades enviado para producto #${payload.id_producto}.`,
     };
   }
-  return api.post('/inventario/ingreso', payload);
+  return api.post('/gestores/inventario/ingresar', payload);
 };
 
 export const ajustarStock = async (payload) => {
   if (USE_MOCKS) {
     return { success: true, data: null, message: 'OK: Ajuste de inventario aplicado correctamente.' };
   }
-  return api.post('/inventario/ajuste', payload);
+  return api.put('/gestores/inventario/ajustar', payload);
 };
 
 // --- CLINICO ---
@@ -170,10 +177,11 @@ export const crearFichaClinica = async (payload) => {
       message: 'OK: Ficha clinica registrada y cita marcada como ATENDIDA.',
     };
   }
-  return api.post('/clinico/fichas', payload);
+  return api.post('/gestores/fichas-clinicas', payload);
 };
 
 export const agregarRecetaClinica = async (payload) => {
+  const idFicha = payload.id_ficha ?? payload.idFicha;
   if (USE_MOCKS) {
     return {
       success: true,
@@ -181,7 +189,7 @@ export const agregarRecetaClinica = async (payload) => {
       message: 'OK: Receta agregada correctamente.',
     };
   }
-  return api.post('/clinico/recetas', payload);
+  return api.post(`/gestores/fichas-clinicas/${idFicha}/recetas`, payload);
 };
 
 export const getHistorialPaciente = async (idPaciente) => {
@@ -192,5 +200,5 @@ export const getHistorialPaciente = async (idPaciente) => {
       message: 'OK',
     };
   }
-  return api.get(`/pacientes/${idPaciente}/historial`);
+  return api.get(`/gestores/pacientes/${idPaciente}/historial`);
 };

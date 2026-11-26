@@ -1,6 +1,5 @@
-import { createContext, useState, useContext } from 'react';
-
-const ConfigContext = createContext();
+import { useState } from 'react';
+import { ConfigContext } from './configRef';
 
 const MODULOS_INICIALES = [
   { id: 'ventas', nombre: 'Punto de Venta', activo: false },
@@ -15,7 +14,6 @@ const MODULOS_INICIALES = [
 ];
 
 export function ConfigProvider({ children }) {
-  // TODO: PATCH TEMPORAL - mantener en memoria sin persistir en localStorage durante pruebas
   const [isConfigurado, setIsConfigurado] = useState(false);
   const [modulos, setModulos] = useState(MODULOS_INICIALES);
 
@@ -53,8 +51,4 @@ export function ConfigProvider({ children }) {
       {children}
     </ConfigContext.Provider>
   );
-}
-
-export function useConfig() {
-  return useContext(ConfigContext);
 }

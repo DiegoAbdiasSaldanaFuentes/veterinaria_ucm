@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
+import { USE_MOCKS } from '../../services/api';
 import { getClientes, getProductos } from '../../services/mantenedoresService';
-import { getVentas, crearVenta, anularVenta } from '../../services/gestoresService';
+import { getVentas, crearVenta, agregarDetalleVenta, anularVenta } from '../../services/gestoresService';
 
 export default function GestorVentas() {
   const { usuario } = useAuth();
@@ -25,7 +26,22 @@ export default function GestorVentas() {
     }
   };
 
-  useEffect(() => { cargarDatos(); }, []);
+  useEffect(() => {
+    let activo = true;
+    Promise.all([getClientes(), getProductos(), getVentas()])
+      .then(([resC, resP, resV]) => {
+        if (!activo) return;
+        if (resC.success) setClientes(resC.data);
+        if (resP.success) setProductos(resP.data);
+        if (resV.success) setVentas(resV.data);
+      })
+      .catch((err) => {
+        if (activo) setMensaje({ tipo: 'danger', texto: err.message });
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   const agregarAlCarrito = () => {
     const cant = Number(cantidad);
@@ -76,12 +92,25 @@ export default function GestorVentas() {
 
     try {
       const res = await crearVenta(payload);
-      setMensaje({ tipo: res.success ? 'success' : 'danger', texto: res.message });
-      if (res.success) {
-        setCarrito([]);
-        setClienteId('');
-        cargarDatos();
+      if (!res.success) {
+        setMensaje({ tipo: 'danger', texto: res.message });
+        return;
       }
+
+      const idVentaCreada = res.data?.id_venta;
+      if (!USE_MOCKS && idVentaCreada) {
+        for (const item of carrito) {
+          await agregarDetalleVenta(idVentaCreada, {
+            id_producto: item.id_producto,
+            cantidad: item.cantidad,
+          });
+        }
+      }
+
+      setMensaje({ tipo: 'success', texto: res.message || 'Venta registrada correctamente.' });
+      setCarrito([]);
+      setClienteId('');
+      cargarDatos();
     } catch (err) {
       setMensaje({ tipo: 'danger', texto: err.message });
     }
@@ -186,7 +215,7 @@ export default function GestorVentas() {
             {ventas.map((v) => (
               <tr key={v.id_venta}>
                 <td>{v.id_venta}</td>
-                <td>{v.fecha_venta}</td>
+                <td>{v.fecha_venta ? String(v.fecha_venta).slice(0, 16).replace('T', ' ') : '-'}</td>
                 <td>{v.cliente}</td>
                 <td>{v.vendedor}</td>
                 <td>${Number(v.total_venta).toLocaleString('es-CL')}</td>
@@ -210,3 +239,4 @@ export default function GestorVentas() {
     </div>
   );
 }
+

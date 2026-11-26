@@ -1,6 +1,6 @@
 import { Outlet, Link } from 'react-router-dom';
-import { useConfig } from '../context/ConfigContext';
-import { useAuth } from '../context/AuthContext';
+import { useConfig } from '../context/useConfig';
+import { useAuth } from '../context/useAuth';
 
 export default function Layout() {
   const { modulos } = useConfig();

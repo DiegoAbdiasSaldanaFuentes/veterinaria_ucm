@@ -32,7 +32,23 @@ export default function GestorCitas() {
     }
   };
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    let activo = true;
+    Promise.all([getPacientes(), getServicios(), getBloquesDisponibles(), getCitas()])
+      .then(([resPa, resSe, resBl, resCi]) => {
+        if (!activo) return;
+        if (resPa.success) setPacientes(resPa.data);
+        if (resSe.success) setServicios(resSe.data.filter((s) => s.activo === 1));
+        if (resBl.success) setBloques(resBl.data);
+        if (resCi.success) setCitas(resCi.data);
+      })
+      .catch((err) => {
+        if (activo) setMensaje({ tipo: 'danger', texto: err.message });
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 

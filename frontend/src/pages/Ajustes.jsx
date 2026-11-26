@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useConfig } from '../context/ConfigContext';
+import { useConfig } from '../context/useConfig';
 
 export default function Ajustes() {
   const { modulos, toggleModulo, setModulos } = useConfig();

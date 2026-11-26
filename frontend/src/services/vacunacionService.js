@@ -41,7 +41,9 @@ export const obtenerVacunaciones = async (idPaciente = null) => {
       : mockVacunaciones;
     return { success: true, data: [...lista], message: 'OK' };
   }
-  return api.get('/vacunaciones', { params: idPaciente ? { id_paciente: idPaciente } : {} });
+  return api.get('/gestores/vacunaciones', {
+    params: idPaciente ? { id_paciente: idPaciente } : {},
+  });
 };
 
 export const registrarVacunacion = async (payload) => {
@@ -61,7 +63,7 @@ export const registrarVacunacion = async (payload) => {
     mockVacunaciones = [nueva, ...mockVacunaciones];
     return { success: true, data: nueva, message: 'OK: Vacunacion registrada correctamente.' };
   }
-  return api.post('/vacunaciones', payload);
+  return api.post('/gestores/vacunaciones', payload);
 };
 
 export const aplicarRefuerzoVacuna = async (idVacunacionAnterior, payload) => {
@@ -89,7 +91,7 @@ export const aplicarRefuerzoVacuna = async (idVacunacionAnterior, payload) => {
       message: 'OK: Refuerzo aplicado y nueva dosis programada en la misma transaccion.',
     };
   }
-  return api.post(`/vacunaciones/${idVacunacionAnterior}/refuerzo`, payload);
+  return api.post(`/gestores/vacunaciones/${idVacunacionAnterior}/refuerzo`, payload);
 };
 
 export const obtenerRecordatorios = async (fechaDesde = null, fechaHasta = null) => {
@@ -100,10 +102,12 @@ export const obtenerRecordatorios = async (fechaDesde = null, fechaHasta = null)
       .filter((v) => !fechaHasta || v.fecha_proxima_dosis <= fechaHasta)
       .map((v) => ({
         id_vacunacion: v.id_vacunacion,
-        mascota: v.nombre_paciente,
+        nombre_paciente: v.nombre_paciente,
+        nombre_especie: v.nombre_especie,
         vacuna: v.vacuna,
+        fecha_aplicacion: v.fecha_aplicacion,
         fecha_proxima_dosis: v.fecha_proxima_dosis,
-        estado: v.fecha_proxima_dosis < '2026-11-25' ? 'Vencida' : 'Próxima',
+        estado_alerta: v.fecha_proxima_dosis < '2026-11-25' ? 'Vencida' : 'Proxima',
         dueno: v.dueno,
         telefono: '987654321',
         correo: 'contacto@mail.com',
@@ -113,8 +117,8 @@ export const obtenerRecordatorios = async (fechaDesde = null, fechaHasta = null)
   }
   return api.get('/reportes/vacunas-pendientes', {
     params: {
-      ...(fechaDesde ? { desde: fechaDesde } : {}),
-      ...(fechaHasta ? { hasta: fechaHasta } : {}),
+      ...(fechaDesde ? { fecha_desde: fechaDesde } : {}),
+      ...(fechaHasta ? { fecha_hasta: fechaHasta } : {}),
     },
   });
 };

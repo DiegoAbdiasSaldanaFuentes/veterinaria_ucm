@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { getPacientes, getProductos } from '../../services/mantenedoresService';
 import { obtenerVacunaciones, registrarVacunacion } from '../../services/vacunacionService';
 
@@ -32,7 +32,22 @@ export default function GestorVacunacion() {
     }
   };
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    let activo = true;
+    Promise.all([getPacientes(), getProductos(), obtenerVacunaciones()])
+      .then(([resPa, resPr, resVa]) => {
+        if (!activo) return;
+        if (resPa.success) setPacientes(resPa.data);
+        if (resPr.success) setProductos(resPr.data);
+        if (resVa.success) setHistorial(resVa.data);
+      })
+      .catch((err) => {
+        if (activo) setMensaje({ tipo: 'danger', texto: err.message });
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 

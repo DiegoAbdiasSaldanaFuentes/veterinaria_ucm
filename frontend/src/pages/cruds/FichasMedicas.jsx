@@ -17,7 +17,19 @@ export default function FichasMedicas() {
     }
   };
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    let activo = true;
+    getFichas()
+      .then((res) => {
+        if (activo && res.success) setFichas(res.data);
+      })
+      .catch((err) => {
+        if (activo) setMensaje({ tipo: 'danger', texto: err.message });
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   const abrirEditar = (f) => {
     setEditId(f.id_ficha);

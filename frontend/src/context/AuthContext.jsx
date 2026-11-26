@@ -1,10 +1,8 @@
-import { createContext, useContext, useState } from 'react';
+import { useState } from 'react';
+import { AuthContext } from './authRef';
 import { loginUsuario } from '../services/authService';
 
-const AuthContext = createContext();
-
 export function AuthProvider({ children }) {
-  // TODO: PATCH TEMPORAL - iniciar en null para que siempre pida Login al recargar durante pruebas
   const [usuario, setUsuario] = useState(null);
 
   const login = async (nombre_usuario, clave) => {
@@ -26,8 +24,4 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
 }
