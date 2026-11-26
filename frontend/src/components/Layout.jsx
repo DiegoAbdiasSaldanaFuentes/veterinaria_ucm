@@ -3,7 +3,7 @@ import { useConfig } from '../context/ConfigContext';
 import { useAuth } from '../context/AuthContext';
 
 export default function Layout() {
-  const { modulos, reabrirConfiguracion } = useConfig();
+  const { modulos } = useConfig();
   const { usuario, logout } = useAuth();
 
   const rol = (usuario?.nombre_rol || '').toLowerCase();
@@ -62,18 +62,12 @@ export default function Layout() {
           {isActivo('auditoria') && <Link to="/auditoria" className="nav-link text-white py-1">Auditoría Financiera</Link>}
           {isActivo('stock_critico') && <Link to="/stock-critico" className="nav-link text-white py-1">Stock Crítico</Link>}
           {isActivo('rendimiento') && <Link to="/rendimiento" className="nav-link text-white py-1">Rendimiento Staff</Link>}
+
+          <div className="text-uppercase text-info small fw-bold mt-2 px-3">Sistema</div>
+          <Link to="/ajustes" className="nav-link text-white py-1">Ajustes</Link>
         </nav>
 
-        {esAdmin && (
-          <button
-            type="button"
-            onClick={reabrirConfiguracion}
-            className="btn btn-warning btn-sm text-dark fw-bold mt-3"
-          >
-            Cambiar Herramientas
-          </button>
-        )}
-        <button type="button" onClick={logout} className="btn btn-outline-light btn-sm mt-2">
+        <button type="button" onClick={logout} className="btn btn-outline-light btn-sm mt-3">
           Cerrar Sesión
         </button>
       </div>

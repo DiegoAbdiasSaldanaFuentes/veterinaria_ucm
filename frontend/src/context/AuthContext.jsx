@@ -4,10 +4,8 @@ import { loginUsuario } from '../services/authService';
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [usuario, setUsuario] = useState(() => {
-    const saved = sessionStorage.getItem('vet_usuario');
-    return saved ? JSON.parse(saved) : null;
-  });
+  // TODO: PATCH TEMPORAL - iniciar en null para que siempre pida Login al recargar durante pruebas
+  const [usuario, setUsuario] = useState(null);
 
   const login = async (nombre_usuario, clave) => {
     const res = await loginUsuario(nombre_usuario, clave);

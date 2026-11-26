@@ -1,8 +1,6 @@
-import { createContext, useState, useContext, useEffect } from 'react';
+import { createContext, useState, useContext } from 'react';
 
 const ConfigContext = createContext();
-
-const STORAGE_KEY = 'vet_config_modulos_v1';
 
 const MODULOS_INICIALES = [
   { id: 'ventas', nombre: 'Punto de Venta', activo: false },
@@ -17,34 +15,9 @@ const MODULOS_INICIALES = [
 ];
 
 export function ConfigProvider({ children }) {
-  const [isConfigurado, setIsConfigurado] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return false;
-    try {
-      return Boolean(JSON.parse(saved).isConfigurado);
-    } catch {
-      return false;
-    }
-  });
-
-  const [modulos, setModulos] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return MODULOS_INICIALES;
-    try {
-      const parsed = JSON.parse(saved);
-      if (!Array.isArray(parsed.modulos)) return MODULOS_INICIALES;
-      return MODULOS_INICIALES.map((base) => {
-        const match = parsed.modulos.find((m) => m.id === base.id);
-        return match ? { ...base, activo: Boolean(match.activo) } : base;
-      });
-    } catch {
-      return MODULOS_INICIALES;
-    }
-  });
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ isConfigurado, modulos }));
-  }, [isConfigurado, modulos]);
+  // TODO: PATCH TEMPORAL - mantener en memoria sin persistir en localStorage durante pruebas
+  const [isConfigurado, setIsConfigurado] = useState(false);
+  const [modulos, setModulos] = useState(MODULOS_INICIALES);
 
   const toggleModulo = (id) => {
     setModulos((prev) =>
@@ -60,6 +33,11 @@ export function ConfigProvider({ children }) {
     setIsConfigurado(false);
   };
 
+  const resetearConfiguracion = () => {
+    setModulos(MODULOS_INICIALES);
+    setIsConfigurado(false);
+  };
+
   return (
     <ConfigContext.Provider
       value={{
@@ -69,6 +47,7 @@ export function ConfigProvider({ children }) {
         isConfigurado,
         finalizarConfiguracion,
         reabrirConfiguracion,
+        resetearConfiguracion,
       }}
     >
       {children}

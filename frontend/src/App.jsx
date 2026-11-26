@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useConfig } from './context/ConfigContext';
 import Layout from './components/Layout';
+import Ajustes from './pages/Ajustes';
 // Importaciones de CRUDs
 import Clientes from './pages/cruds/Clientes';
 import Usuarios from './pages/cruds/Usuarios';
@@ -28,6 +29,7 @@ import Inicio from './pages/dashboards/Inicio';
 // Importacion de Autentificaciones
 import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
+
 function App() {
   const { isConfigurado } = useConfig();
   const { isAuthenticated } = useAuth();
@@ -44,29 +46,30 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Inicio />} />
-          
-          <Route path="clientes" element={<Clientes/>} />
-          <Route path="usuarios" element={<Usuarios/>} />
-          <Route path="roles" element={<Roles/>} />
-          <Route path="pacientes" element={<Pacientes/>} />
-          <Route path="especies" element={<EspeciesRazas/>} />
-          <Route path="productos" element={<Productos/>} />
-          <Route path="proveedores" element={<Proveedores/>} />
-          <Route path="servicios" element={<Servicios/>} />
-          <Route path="fichas" element={<FichasMedicas/>} />
-          <Route path="recetas" element={<RecetasMedicas/>} />
-          
-          <Route path="ventas" element={<GestorVentas/>} />
-          <Route path="clinica" element={<GestorClinico/>} />
-          <Route path="inventario" element={<GestorInventario/>} />
-          <Route path="citas" element={<GestorCitas/>} />
-          
-          <Route path="auditoria" element={<AuditoriaFinanciera/>} />
-          <Route path="stock-critico" element={<ControlInventario/>} />
-          <Route path="rendimiento" element={<RendimientoStaff/>} />
+          <Route path="ajustes" element={<Ajustes />} />
+
+          <Route path="clientes" element={<Clientes />} />
+          <Route path="usuarios" element={<Usuarios />} />
+          <Route path="roles" element={<Roles />} />
+          <Route path="pacientes" element={<Pacientes />} />
+          <Route path="especies" element={<EspeciesRazas />} />
+          <Route path="productos" element={<Productos />} />
+          <Route path="proveedores" element={<Proveedores />} />
+          <Route path="servicios" element={<Servicios />} />
+          <Route path="fichas" element={<FichasMedicas />} />
+          <Route path="recetas" element={<RecetasMedicas />} />
+
+          <Route path="ventas" element={<GestorVentas />} />
+          <Route path="clinica" element={<GestorClinico />} />
+          <Route path="inventario" element={<GestorInventario />} />
+          <Route path="citas" element={<GestorCitas />} />
+
+          <Route path="auditoria" element={<AuditoriaFinanciera />} />
+          <Route path="stock-critico" element={<ControlInventario />} />
+          <Route path="rendimiento" element={<RendimientoStaff />} />
           <Route path="vacunacion" element={<GestorVacunacion />} />
           <Route path="recordatorios" element={<RecordatoriosVacunacion />} />
-          
+
           {/* Ruta de seguridad para URLs no encontradas */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
