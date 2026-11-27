@@ -231,6 +231,44 @@ EXCEPTION
 END PROC_CREAR_USUARIO;
 /
 
+CREATE OR REPLACE PROCEDURE PROC_SOLICITAR_USUARIO (
+    p_nombre_usuario IN USUARIOS.NOMBRE_USUARIO%TYPE,
+    p_clave_hash IN USUARIOS.CLAVE_HASH%TYPE,
+    p_nombres IN USUARIOS.NOMBRES%TYPE,
+    p_apellidos IN USUARIOS.APELLIDOS%TYPE,
+    o_mensaje OUT VARCHAR2
+) IS
+    v_id_rol ROLES.ID_ROL%TYPE;
+    v_existentes NUMBER;
+BEGIN
+    SELECT MIN(ID_ROL) INTO v_id_rol FROM ROLES
+     WHERE UPPER(TRIM(NOMBRE_ROL)) IN ('RECEPCIONISTA', 'RECEPCION', 'RECEPCIÓN');
+    IF v_id_rol IS NULL THEN
+        o_mensaje := 'ERROR: Configure el rol Recepcionista antes de solicitar cuentas.';
+        RETURN;
+    END IF;
+
+    LOCK TABLE USUARIOS IN SHARE ROW EXCLUSIVE MODE;
+    SELECT COUNT(*) INTO v_existentes FROM USUARIOS
+     WHERE UPPER(NOMBRE_USUARIO) = UPPER(TRIM(p_nombre_usuario));
+    IF v_existentes > 0 THEN
+        ROLLBACK;
+        o_mensaje := 'ERROR: El nombre de usuario ya está en uso.';
+        RETURN;
+    END IF;
+
+    INSERT INTO USUARIOS (
+        ID_USUARIO, ID_ROL, NOMBRE_USUARIO, CLAVE_HASH, NOMBRES, APELLIDOS, ACTIVO
+    ) VALUES (
+        SEQ_USUARIOS.NEXTVAL, v_id_rol, TRIM(p_nombre_usuario), p_clave_hash,
+        TRIM(p_nombres), TRIM(p_apellidos), 0
+    );
+
+    COMMIT;
+    o_mensaje := 'Solicitud registrada. Pide a un administrador que active tu cuenta.';
+END PROC_SOLICITAR_USUARIO;
+/
+
 CREATE OR REPLACE PROCEDURE PROC_ACTUALIZAR_USUARIO (
     p_id_usuario IN  USUARIOS.ID_USUARIO%TYPE,
     p_id_rol     IN  USUARIOS.ID_ROL%TYPE,
@@ -849,7 +887,8 @@ CREATE OR REPLACE PROCEDURE PROC_CREAR_PRODUCTO (
     p_stock           IN  PRODUCTOS.STOCK%TYPE,
     p_stock_minimo    IN  PRODUCTOS.STOCK_MINIMO%TYPE,
     o_id_producto     OUT PRODUCTOS.ID_PRODUCTO%TYPE,
-    o_mensaje         OUT VARCHAR2
+    o_mensaje         OUT VARCHAR2,
+    p_es_vacuna       IN  PRODUCTOS.ES_VACUNA%TYPE DEFAULT 0
 ) IS
     e_fk_parent EXCEPTION;
     PRAGMA EXCEPTION_INIT(e_fk_parent, -2291);
@@ -860,12 +899,12 @@ BEGIN
 
     INSERT INTO PRODUCTOS (
         ID_PRODUCTO, ID_PROVEEDOR, SKU, NOMBRE_PRODUCTO,
-        PRECIO_UNITARIO, STOCK, STOCK_MINIMO, ACTIVO
+        PRECIO_UNITARIO, STOCK, STOCK_MINIMO, ACTIVO, ES_VACUNA
     )
     VALUES (
         SEQ_PRODUCTOS.NEXTVAL, p_id_proveedor, UPPER(TRIM(p_sku)),
         TRIM(p_nombre_producto), p_precio_unitario,
-        NVL(p_stock, 0), NVL(p_stock_minimo, 0), 1
+        NVL(p_stock, 0), NVL(p_stock_minimo, 0), 1, p_es_vacuna
     )
     RETURNING ID_PRODUCTO INTO o_id_producto;
 
@@ -900,7 +939,8 @@ CREATE OR REPLACE PROCEDURE PROC_ACTUALIZAR_PRODUCTO (
     p_stock           IN  PRODUCTOS.STOCK%TYPE,
     p_stock_minimo    IN  PRODUCTOS.STOCK_MINIMO%TYPE,
     p_activo          IN  PRODUCTOS.ACTIVO%TYPE,
-    o_mensaje         OUT VARCHAR2
+    o_mensaje         OUT VARCHAR2,
+    p_es_vacuna       IN  PRODUCTOS.ES_VACUNA%TYPE DEFAULT 0
 ) IS
     e_fk_parent EXCEPTION;
     PRAGMA EXCEPTION_INIT(e_fk_parent, -2291);
@@ -917,7 +957,8 @@ BEGIN
            STOCK           = p_stock,
            STOCK_MINIMO    = p_stock_minimo,
            ACTIVO          = p_activo
-     WHERE ID_PRODUCTO = p_id_producto;
+     WHERE ID_PRODUCTO = p_id_producto
+       AND ES_VACUNA = p_es_vacuna;
 
     IF SQL%ROWCOUNT = 0 THEN
         ROLLBACK;
@@ -944,7 +985,8 @@ END PROC_ACTUALIZAR_PRODUCTO;
 
 CREATE OR REPLACE PROCEDURE PROC_ELIMINAR_PRODUCTO (
     p_id_producto IN  PRODUCTOS.ID_PRODUCTO%TYPE,
-    o_mensaje     OUT VARCHAR2
+    o_mensaje     OUT VARCHAR2,
+    p_es_vacuna   IN  PRODUCTOS.ES_VACUNA%TYPE DEFAULT 0
 ) IS
     e_fk_child EXCEPTION;
     PRAGMA EXCEPTION_INIT(e_fk_child, -2292);
@@ -952,7 +994,8 @@ BEGIN
     LOCK TABLE PRODUCTOS IN ROW EXCLUSIVE MODE;
 
     DELETE FROM PRODUCTOS
-     WHERE ID_PRODUCTO = p_id_producto;
+     WHERE ID_PRODUCTO = p_id_producto
+       AND ES_VACUNA = p_es_vacuna;
 
     IF SQL%ROWCOUNT = 0 THEN
         ROLLBACK;
@@ -971,7 +1014,10 @@ EXCEPTION
 END PROC_ELIMINAR_PRODUCTO;
 /
 
-CREATE OR REPLACE FUNCTION FUNC_GET_PRODUCTOS
+CREATE OR REPLACE FUNCTION FUNC_GET_PRODUCTOS (
+    p_es_vacuna IN PRODUCTOS.ES_VACUNA%TYPE DEFAULT 0,
+    p_incluir_inactivos IN NUMBER DEFAULT 0
+)
 RETURN SYS_REFCURSOR
 IS
     v_cursor SYS_REFCURSOR;
@@ -988,11 +1034,27 @@ BEGIN
                NVL(pr.RAZON_SOCIAL, 'SIN PROVEEDOR') AS PROVEEDOR
           FROM PRODUCTOS p
           LEFT JOIN PROVEEDORES pr ON p.ID_PROVEEDOR = pr.ID_PROVEEDOR
-         WHERE p.ACTIVO = 1
+         WHERE p.ES_VACUNA = p_es_vacuna
+           AND (p.ACTIVO = 1 OR p_incluir_inactivos = 1)
          ORDER BY p.NOMBRE_PRODUCTO;
 
     RETURN v_cursor;
 END FUNC_GET_PRODUCTOS;
+/
+
+CREATE OR REPLACE FUNCTION FUNC_GET_VACUNAS (p_incluir_inactivos IN NUMBER DEFAULT 0)
+RETURN SYS_REFCURSOR IS
+    v_cursor SYS_REFCURSOR;
+BEGIN
+    OPEN v_cursor FOR
+        SELECT v.ID_VACUNA AS ID_PRODUCTO, v.SKU, v.NOMBRE_VACUNA AS NOMBRE_PRODUCTO,
+               v.STOCK, v.STOCK_MINIMO, v.ACTIVO, v.ID_PROVEEDOR,
+               NVL(p.RAZON_SOCIAL, 'SIN PROVEEDOR') AS PROVEEDOR
+          FROM VACUNAS v LEFT JOIN PROVEEDORES p ON p.ID_PROVEEDOR = v.ID_PROVEEDOR
+         WHERE v.ACTIVO = 1 OR p_incluir_inactivos = 1
+         ORDER BY v.NOMBRE_VACUNA;
+    RETURN v_cursor;
+END;
 /
 
 -- ============================================================================
@@ -1130,6 +1192,11 @@ BEGIN
     IF v_es_vet = 0 THEN
         o_id_bloque := NULL;
         o_mensaje := 'ERROR: El usuario especificado no existe, esta inactivo o no tiene rol de Veterinario.';
+        RETURN;
+    END IF;
+
+    IF p_fecha_hora_inicio IS NULL OR p_fecha_hora_inicio <= SYSDATE THEN
+        o_mensaje := 'ERROR: El bloque debe tener una fecha y hora futura.';
         RETURN;
     END IF;
 

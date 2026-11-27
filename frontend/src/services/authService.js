@@ -1,46 +1,41 @@
 import api, { USE_MOCKS } from './api';
+import { crearUsuario, getRoles, getUsuarios } from './mantenedoresService';
 
-// TODO: PATCH TEMPORAL - usuarios de prueba mientras Benja sube /api/auth/login
-const MOCK_USUARIOS = [
-  {
-    id_usuario: 1,
-    id_rol: 1,
-    nombre_rol: 'Administrador',
-    nombre_usuario: 'admin',
-    nombres: 'Admin',
-    apellidos: 'Sistema',
-    activo: 1,
-  },
-  {
-    id_usuario: 2,
-    id_rol: 2,
-    nombre_rol: 'Veterinario',
-    nombre_usuario: 'vet',
-    nombres: 'Carlos',
-    apellidos: 'Castro',
-    activo: 1,
-  },
-  {
-    id_usuario: 3,
-    id_rol: 3,
-    nombre_rol: 'Recepcionista',
-    nombre_usuario: 'recep',
-    nombres: 'María',
-    apellidos: 'López',
-    activo: 1,
-  },
-];
+const clavesMock = new Map([
+  ['admin', '1234'],
+  ['vet', '1234'],
+  ['recep', '1234'],
+]);
 
 export const loginUsuario = async (nombre_usuario, clave) => {
   if (USE_MOCKS) {
-    const user = MOCK_USUARIOS.find(
-      (u) => u.nombre_usuario.toLowerCase() === nombre_usuario.trim().toLowerCase()
-    );
-    if (!user || clave !== '1234') {
-      return { success: false, data: null, message: 'ERROR: Usuario o credenciales inválidas.' };
+    const nombre = nombre_usuario.trim().toLowerCase();
+    const { data } = await getUsuarios();
+    const user = data.find((u) => u.nombre_usuario.toLowerCase() === nombre);
+    if (user?.activo !== 1 || clave !== clavesMock.get(nombre)) {
+      return { success: false, data: null, message: 'Credenciales inválidas o cuenta inactiva.' };
     }
-    return { success: true, data: user, message: 'OK: Autenticación exitosa.' };
+    return { success: true, data: user, message: 'Inicio de sesión exitoso.' };
   }
 
   return api.post('/auth/login', { nombre_usuario, clave });
+};
+
+export const registrarUsuario = async ({ nombre_usuario, nombres, apellidos, clave }) => {
+  if (USE_MOCKS) {
+    const nombre = nombre_usuario.trim().toLowerCase();
+    const { data: usuarios } = await getUsuarios();
+    if (usuarios.some((u) => u.nombre_usuario.toLowerCase() === nombre)) {
+      return { success: false, message: 'El nombre de usuario ya está en uso.' };
+    }
+    const { data: roles } = await getRoles();
+    const rol = roles.find((r) => /^recepci(onista|ón|on)$/i.test(r.nombre_rol.trim()));
+    if (!rol) return { success: false, message: 'Configura el rol Recepcionista antes de solicitar cuentas.' };
+
+    await crearUsuario({ nombre_usuario, nombres, apellidos, id_rol: rol.id_rol }, 0);
+    clavesMock.set(nombre, clave);
+    return { success: true, message: 'Solicitud registrada. Pide a un administrador que active tu cuenta.' };
+  }
+
+  return api.post('/auth/registro', { nombre_usuario, nombres, apellidos, clave });
 };

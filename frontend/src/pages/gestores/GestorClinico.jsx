@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { getProductos } from '../../services/mantenedoresService';
+import { getFichas, getProductos } from '../../services/mantenedoresService';
 import { getCitas, crearFichaClinica, agregarRecetaClinica } from '../../services/gestoresService';
 
 export default function GestorClinico() {
   const [citas, setCitas] = useState([]);
   const [productos, setProductos] = useState([]);
   const [mensaje, setMensaje] = useState(null);
-  const [fichaCreadaId, setFichaCreadaId] = useState(null);
+  const [fichas, setFichas] = useState([]);
 
   const [fichaForm, setFichaForm] = useState({
     id_cita: '',
@@ -22,9 +22,10 @@ export default function GestorClinico() {
 
   const cargar = async () => {
     try {
-      const [resCi, resPr] = await Promise.all([getCitas(), getProductos()]);
-      if (resCi.success) setCitas(resCi.data.filter((c) => c.estado !== 'CANCELADA'));
+      const [resCi, resPr, resFi] = await Promise.all([getCitas(), getProductos(), getFichas()]);
+      if (resCi.success) setCitas(resCi.data.filter((c) => c.estado !== 'CANCELADA' && !(resFi.data || []).some((f) => f.id_cita === c.id_cita)));
       if (resPr.success) setProductos(resPr.data);
+      if (resFi.success) setFichas(resFi.data);
     } catch (err) {
       setMensaje({ tipo: 'danger', texto: err.message });
     }
@@ -32,11 +33,12 @@ export default function GestorClinico() {
 
   useEffect(() => {
     let activo = true;
-    Promise.all([getCitas(), getProductos()])
-      .then(([resCi, resPr]) => {
+    Promise.all([getCitas(), getProductos(), getFichas()])
+      .then(([resCi, resPr, resFi]) => {
         if (!activo) return;
-        if (resCi.success) setCitas(resCi.data.filter((c) => c.estado !== 'CANCELADA'));
+        if (resCi.success) setCitas(resCi.data.filter((c) => c.estado !== 'CANCELADA' && !(resFi.data || []).some((f) => f.id_cita === c.id_cita)));
         if (resPr.success) setProductos(resPr.data);
+        if (resFi.success) setFichas(resFi.data);
       })
       .catch((err) => {
         if (activo) setMensaje({ tipo: 'danger', texto: err.message });
@@ -56,7 +58,6 @@ export default function GestorClinico() {
       });
       setMensaje({ tipo: res.success ? 'success' : 'danger', texto: res.message });
       if (res.success && res.data?.id_ficha) {
-        setFichaCreadaId(res.data.id_ficha);
         setRecetaForm((prev) => ({ ...prev, id_ficha: res.data.id_ficha }));
         setFichaForm({ id_cita: '', diagnostico: '', observaciones: '' });
         cargar();
@@ -76,7 +77,7 @@ export default function GestorClinico() {
       });
       setMensaje({ tipo: res.success ? 'success' : 'danger', texto: res.message });
       if (res.success) {
-        setRecetaForm({ id_ficha: fichaCreadaId || '', id_producto: '', indicaciones: '' });
+        setRecetaForm((prev) => ({ ...prev, id_producto: '', indicaciones: '' }));
       }
     } catch (err) {
       setMensaje({ tipo: 'danger', texto: err.message });
@@ -107,7 +108,7 @@ export default function GestorClinico() {
                   onChange={(e) => setFichaForm({ ...fichaForm, id_cita: e.target.value })}
                   required
                 >
-                  <option value="">Seleccione Cita...</option>
+                  <option value="">{citas.length ? 'Selecciona una cita' : 'No hay citas pendientes de ficha'}</option>
                   {citas.map((c) => (
                     <option key={c.id_cita} value={c.id_cita}>
                       Cita #{c.id_cita} — {c.nombre_paciente} ({c.fecha_hora_inicio}) [{c.estado}]
@@ -121,6 +122,7 @@ export default function GestorClinico() {
                 <textarea
                   className="form-control"
                   rows="3"
+                  maxLength={1000}
                   value={fichaForm.diagnostico}
                   onChange={(e) => setFichaForm({ ...fichaForm, diagnostico: e.target.value })}
                   required
@@ -132,6 +134,7 @@ export default function GestorClinico() {
                 <textarea
                   className="form-control"
                   rows="2"
+                  maxLength={1000}
                   value={fichaForm.observaciones}
                   onChange={(e) => setFichaForm({ ...fichaForm, observaciones: e.target.value })}
                 />
@@ -147,16 +150,18 @@ export default function GestorClinico() {
             <h5 className="mb-3">2. Agregar Receta a Ficha</h5>
             <form onSubmit={registrarReceta}>
               <div className="mb-3">
-                <label className="form-label text-secondary">ID Ficha Clínica</label>
-                <input
-                  type="number"
-                  min="1"
-                  className="form-control"
+                <label className="form-label text-secondary">Ficha clínica</label>
+                <select
+                  className="form-select"
                   value={recetaForm.id_ficha}
                   onChange={(e) => setRecetaForm({ ...recetaForm, id_ficha: e.target.value })}
-                  placeholder="Ej: 1"
                   required
-                />
+                >
+                  <option value="">{fichas.length ? 'Selecciona una ficha' : 'Registra una ficha primero'}</option>
+                  {fichas.map((f) => (
+                    <option key={f.id_ficha} value={f.id_ficha}>Ficha #{f.id_ficha} — {f.nombre_paciente}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="mb-3">
@@ -178,6 +183,7 @@ export default function GestorClinico() {
                 <label className="form-label text-secondary">Indicaciones</label>
                 <input
                   type="text"
+                  maxLength={500}
                   className="form-control"
                   value={recetaForm.indicaciones}
                   onChange={(e) => setRecetaForm({ ...recetaForm, indicaciones: e.target.value })}

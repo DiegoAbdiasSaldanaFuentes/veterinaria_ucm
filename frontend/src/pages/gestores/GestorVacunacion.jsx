@@ -6,7 +6,7 @@ import { obtenerVacunaciones, registrarVacunacion } from '../../services/vacunac
 export default function GestorVacunacion() {
   const { usuario } = useAuth();
   const [pacientes, setPacientes] = useState([]);
-  const [productos, setProductos] = useState([]);
+  const [vacunas, setVacunas] = useState([]);
   const [historial, setHistorial] = useState([]);
   const [mensaje, setMensaje] = useState(null);
   const [formData, setFormData] = useState({
@@ -21,24 +21,25 @@ export default function GestorVacunacion() {
     try {
       const [resPa, resPr, resVa] = await Promise.all([
         getPacientes(),
-        getProductos(),
+        getProductos('vacunas'),
         obtenerVacunaciones(),
       ]);
       if (resPa.success) setPacientes(resPa.data);
-      if (resPr.success) setProductos(resPr.data);
+      if (resPr.success) setVacunas(resPr.data);
       if (resVa.success) setHistorial(resVa.data);
     } catch (err) {
       setMensaje({ tipo: 'danger', texto: err.message });
     }
   };
 
+
   useEffect(() => {
     let activo = true;
-    Promise.all([getPacientes(), getProductos(), obtenerVacunaciones()])
+    Promise.all([getPacientes(), getProductos('vacunas'), obtenerVacunaciones()])
       .then(([resPa, resPr, resVa]) => {
         if (!activo) return;
         if (resPa.success) setPacientes(resPa.data);
-        if (resPr.success) setProductos(resPr.data);
+        if (resPr.success) setVacunas(resPr.data);
         if (resVa.success) setHistorial(resVa.data);
       })
       .catch((err) => {
@@ -54,7 +55,7 @@ export default function GestorVacunacion() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const pac = pacientes.find((p) => p.id_paciente === Number(formData.id_paciente));
-    const prd = productos.find((p) => p.id_producto === Number(formData.id_producto));
+    const prd = vacunas.find((p) => p.id_producto === Number(formData.id_producto));
 
     try {
       const res = await registrarVacunacion({
@@ -103,10 +104,10 @@ export default function GestorVacunacion() {
               </select>
             </div>
             <div className="col-md-6">
-              <label className="form-label text-secondary">Vacuna (Producto)</label>
+              <label className="form-label text-secondary">Vacuna</label>
               <select className="form-select" name="id_producto" value={formData.id_producto} onChange={handleChange} required>
                 <option value="">Seleccione Vacuna...</option>
-                {productos.map((p) => (
+                {vacunas.map((p) => (
                   <option key={p.id_producto} value={p.id_producto}>{p.nombre_producto}</option>
                 ))}
               </select>

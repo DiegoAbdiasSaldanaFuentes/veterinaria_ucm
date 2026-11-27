@@ -30,6 +30,7 @@ import Inicio from './pages/dashboards/Inicio';
 import { useAuth } from './context/useAuth';
 import Login from './pages/Login';
 
+
 function App() {
   const { isConfigurado } = useConfig();
   const { isAuthenticated } = useAuth();
@@ -53,7 +54,8 @@ function App() {
           <Route path="roles" element={<Roles />} />
           <Route path="pacientes" element={<Pacientes />} />
           <Route path="especies" element={<EspeciesRazas />} />
-          <Route path="productos" element={<Productos />} />
+          <Route path="productos" element={<Productos key="productos" />} />
+          <Route path="vacunas" element={<Productos key="vacunas" catalogo="vacunas" />} />
           <Route path="proveedores" element={<Proveedores />} />
           <Route path="servicios" element={<Servicios />} />
           <Route path="fichas" element={<FichasMedicas />} />

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getFichas, actualizarFicha, eliminarFicha } from '../../services/mantenedoresService';
 
@@ -66,6 +67,7 @@ export default function FichasMedicas() {
     <div className="p-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2>Fichas Clínicas</h2>
+      <Link to="/clinica" className="btn btn-primary mb-3">Nueva ficha clínica</Link>
       </div>
 
       {mensaje && (

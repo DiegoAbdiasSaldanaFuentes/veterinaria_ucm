@@ -87,9 +87,13 @@ router.delete('/proveedores/:id', eliminarProveedor);
 
 // Productos
 router.get('/productos', listarProductos);
+router.get('/vacunas', listarProductos);
 router.post('/productos', crearProducto);
+router.post('/vacunas', crearProducto);
 router.put('/productos/:id', actualizarProducto);
+router.put('/vacunas/:id', actualizarProducto);
 router.delete('/productos/:id', eliminarProducto);
+router.delete('/vacunas/:id', eliminarProducto);
 
 // Servicios
 router.get('/servicios', listarServicios);

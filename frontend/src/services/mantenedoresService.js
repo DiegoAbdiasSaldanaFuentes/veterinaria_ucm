@@ -174,6 +174,8 @@ let mockProveedores = [
 ];
 
 let mockProductos = [
+  { id_producto: 103, catalogo: 'vacunas', sku: 'VAC-RAB-001', nombre_producto: 'Vacuna Antirrábica', precio_unitario: 12000, stock: 10, stock_minimo: 2, activo: 1 },
+  { id_producto: 104, catalogo: 'vacunas', sku: 'VAC-OCT-002', nombre_producto: 'Vacuna Óctuple', precio_unitario: 16500, stock: 10, stock_minimo: 2, activo: 1 },
   { id_producto: 101, id_proveedor: 1, proveedor: 'Distribuidora Vet', sku: 'SKU-101', nombre_producto: 'Meloxicam 5mg', precio_unitario: 12000, stock: 5, stock_minimo: 6, activo: 1 },
 ];
 
@@ -189,13 +191,34 @@ let mockRecetas = [
   { id_receta: 1, id_ficha: 1, id_paciente: 1, nombre_paciente: 'Max', id_producto: 101, medicamento: 'Meloxicam 5mg', indicaciones: '1 comprimido cada 24h por 5 días' },
 ];
 
+export function guardarFichaSimulada(cita, payload) {
+  if (mockFichas.some((f) => f.id_cita === cita.id_cita)) return null;
+  const id_ficha = Date.now();
+  mockFichas.unshift({
+    ...cita, ...payload, id_ficha, fecha_atencion: cita.fecha_hora_inicio,
+  });
+  return id_ficha;
+}
+
+export function guardarRecetaSimulada(payload) {
+  const ficha = mockFichas.find((f) => f.id_ficha === Number(payload.id_ficha));
+  const producto = mockProductos.find((p) => p.id_producto === Number(payload.id_producto) && p.activo === 1 && p.catalogo !== 'vacunas');
+  if (!ficha || !producto) return null;
+  const id_receta = Date.now();
+  mockRecetas.unshift({
+    ...payload, id_receta, id_paciente: ficha.id_paciente,
+    nombre_paciente: ficha.nombre_paciente, medicamento: producto.nombre_producto,
+  });
+  return id_receta;
+}
+
 // --- USUARIOS ---
 export const getUsuarios = async () => {
   if (USE_MOCKS) return { success: true, data: [...mockUsuarios], message: 'OK' };
   return api.get('/mantenedores/usuarios');
 };
 
-export const crearUsuario = async (payload) => {
+export const crearUsuario = async (payload, activo = 1) => {
   if (USE_MOCKS) {
     const rolMatch = mockRoles.find((r) => r.id_rol === Number(payload.id_rol));
     const nuevo = {
@@ -205,7 +228,7 @@ export const crearUsuario = async (payload) => {
       nombre_usuario: payload.nombre_usuario.trim(),
       nombres: payload.nombres.trim(),
       apellidos: payload.apellidos.trim(),
-      activo: 1,
+      activo,
     };
     mockUsuarios.push(nuevo);
     return { success: true, data: nuevo, message: 'OK: Usuario registrado correctamente.' };
@@ -289,16 +312,17 @@ export const eliminarProveedor = async (id) => {
 };
 
 // --- PRODUCTOS ---
-export const getProductos = async () => {
-  if (USE_MOCKS) return { success: true, data: [...mockProductos], message: 'OK' };
-  return api.get('/mantenedores/productos');
+export const getProductos = async (catalogo = 'productos', incluirInactivos = false) => {
+  if (USE_MOCKS) return { success: true, data: mockProductos.filter((p) => (p.catalogo || 'productos') === catalogo && (incluirInactivos || p.activo === 1)), message: 'OK' };
+  return api.get(`/mantenedores/${catalogo}`, { params: { incluir_inactivos: incluirInactivos ? 1 : 0 } });
 };
 
-export const crearProducto = async (payload) => {
+export const crearProducto = async (payload, catalogo = 'productos') => {
   if (USE_MOCKS) {
     const prov = mockProveedores.find((p) => p.id_proveedor === Number(payload.id_proveedor));
     const nuevo = {
       id_producto: Date.now(),
+      catalogo,
       id_proveedor: Number(payload.id_proveedor),
       proveedor: prov ? prov.razon_social : 'SIN PROVEEDOR',
       sku: payload.sku.toUpperCase().trim(),
@@ -311,14 +335,14 @@ export const crearProducto = async (payload) => {
     mockProductos.push(nuevo);
     return { success: true, data: nuevo, message: 'OK: Producto registrado correctamente.' };
   }
-  return api.post('/mantenedores/productos', payload);
+  return api.post(`/mantenedores/${catalogo}`, payload);
 };
 
-export const actualizarProducto = async (id, payload) => {
+export const actualizarProducto = async (id, payload, catalogo = 'productos') => {
   if (USE_MOCKS) {
     const prov = mockProveedores.find((p) => p.id_proveedor === Number(payload.id_proveedor));
     mockProductos = mockProductos.map((p) =>
-      p.id_producto === id
+      p.id_producto === id && (p.catalogo || 'productos') === catalogo
         ? {
             ...p,
             id_proveedor: Number(payload.id_proveedor),
@@ -334,15 +358,15 @@ export const actualizarProducto = async (id, payload) => {
     );
     return { success: true, data: null, message: 'OK: Producto actualizado correctamente.' };
   }
-  return api.put(`/mantenedores/productos/${id}`, payload);
+  return api.put(`/mantenedores/${catalogo}/${id}`, payload);
 };
 
-export const eliminarProducto = async (id) => {
+export const eliminarProducto = async (id, catalogo = 'productos') => {
   if (USE_MOCKS) {
-    mockProductos = mockProductos.filter((p) => p.id_producto !== id);
+    mockProductos = mockProductos.filter((p) => p.id_producto !== id || (p.catalogo || 'productos') !== catalogo);
     return { success: true, data: null, message: 'OK: Producto eliminado correctamente.' };
   }
-  return api.delete(`/mantenedores/productos/${id}`);
+  return api.delete(`/mantenedores/${catalogo}/${id}`);
 };
 
 // --- PACIENTES ---

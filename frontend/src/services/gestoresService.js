@@ -1,4 +1,5 @@
 import api, { USE_MOCKS } from './api';
+import { guardarFichaSimulada, guardarRecetaSimulada, getUsuarios } from './mantenedoresService';
 
 // TODO: PATCH TEMPORAL - mocks en memoria para gestores sin backend Node
 let mockVentas = [
@@ -16,7 +17,7 @@ let mockVentas = [
   },
 ];
 
-let mockBloquesDisponibles = [
+const mockBloquesDisponibles = [
   { id_bloque: 10, id_veterinario: 2, veterinario: 'Carlos Castro', fecha_hora_inicio: '2026-11-26 10:00' },
   { id_bloque: 11, id_veterinario: 2, veterinario: 'Carlos Castro', fecha_hora_inicio: '2026-11-26 10:30' },
   { id_bloque: 12, id_veterinario: 2, veterinario: 'Carlos Castro', fecha_hora_inicio: '2026-11-26 11:00' },
@@ -105,17 +106,39 @@ export const getCitas = async () => {
 
 export const getBloquesDisponibles = async (fecha = null) => {
   if (USE_MOCKS) {
-    const filtrados = fecha
-      ? mockBloquesDisponibles.filter((b) => b.fecha_hora_inicio.startsWith(fecha))
-      : mockBloquesDisponibles;
+    const filtrados = mockBloquesDisponibles.filter((b) =>
+      (!fecha || b.fecha_hora_inicio.startsWith(fecha)) &&
+      new Date(b.fecha_hora_inicio.replace(' ', 'T')) > new Date() &&
+      !mockCitas.some((c) => c.id_bloque === b.id_bloque && c.estado !== 'CANCELADA')
+    );
     return { success: true, data: [...filtrados], message: 'OK' };
   }
   return api.get('/gestores/bloques-disponibles', { params: fecha ? { fecha } : {} });
 };
 
+export const crearBloqueAgenda = async (payload) => {
+  if (USE_MOCKS) {
+    const { data: usuarios } = await getUsuarios();
+    const veterinario = usuarios.find((u) => u.id_usuario === payload.id_veterinario && u.activo === 1 && /veterinari/i.test(u.nombre_rol));
+    if (!veterinario) return { success: false, message: 'Selecciona un veterinario activo.' };
+    const fechaHora = payload.fecha_hora_inicio.replace('T', ' ');
+    if (mockBloquesDisponibles.some((b) => b.id_veterinario === veterinario.id_usuario && b.fecha_hora_inicio === fechaHora)) {
+      return { success: false, message: 'El veterinario ya tiene ese bloque.' };
+    }
+    mockBloquesDisponibles.push({
+      id_bloque: Date.now(), id_veterinario: veterinario.id_usuario,
+      veterinario: `${veterinario.nombres} ${veterinario.apellidos}`, fecha_hora_inicio: fechaHora,
+    });
+    return { success: true, message: 'Bloque de agenda registrado.' };
+  }
+  return api.post('/mantenedores/bloques-agenda', payload);
+};
+
 export const reservarCita = async (payload) => {
   if (USE_MOCKS) {
     const bloque = mockBloquesDisponibles.find((b) => b.id_bloque === Number(payload.id_bloque));
+    const { data: disponibles } = await getBloquesDisponibles();
+    if (!disponibles.includes(bloque)) return { success: false, message: 'El bloque ya no está disponible.' };
     const nueva = {
       id_cita: Date.now(),
       id_bloque: Number(payload.id_bloque),
@@ -131,7 +154,6 @@ export const reservarCita = async (payload) => {
       motivo: payload.motivo?.trim() || '',
     };
     mockCitas = [nueva, ...mockCitas];
-    mockBloquesDisponibles = mockBloquesDisponibles.filter((b) => b.id_bloque !== Number(payload.id_bloque));
     return { success: true, data: nueva, message: 'OK: Cita reservada correctamente.' };
   }
   return api.post('/gestores/citas', payload);
@@ -167,7 +189,10 @@ export const ajustarStock = async (payload) => {
 // --- CLINICO ---
 export const crearFichaClinica = async (payload) => {
   if (USE_MOCKS) {
-    const idFicha = Date.now();
+    const cita = mockCitas.find((c) => c.id_cita === Number(payload.id_cita) && c.estado !== 'CANCELADA');
+    if (!cita) return { success: false, message: 'Selecciona una cita vigente.' };
+    const idFicha = guardarFichaSimulada(cita, payload);
+    if (!idFicha) return { success: false, message: 'La cita ya tiene ficha clínica.' };
     mockCitas = mockCitas.map((c) =>
       c.id_cita === Number(payload.id_cita) ? { ...c, estado: 'ATENDIDA' } : c
     );
@@ -183,9 +208,11 @@ export const crearFichaClinica = async (payload) => {
 export const agregarRecetaClinica = async (payload) => {
   const idFicha = payload.id_ficha ?? payload.idFicha;
   if (USE_MOCKS) {
+    const idReceta = guardarRecetaSimulada(payload);
+    if (!idReceta) return { success: false, message: 'Selecciona una ficha y un producto activo.' };
     return {
       success: true,
-      data: { id_receta: Date.now() },
+      data: { id_receta: idReceta },
       message: 'OK: Receta agregada correctamente.',
     };
   }

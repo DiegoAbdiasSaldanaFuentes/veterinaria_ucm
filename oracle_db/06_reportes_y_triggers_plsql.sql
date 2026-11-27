@@ -63,7 +63,7 @@ BEGIN
                pr.CORREO
           FROM PRODUCTOS p
           LEFT JOIN PROVEEDORES pr ON p.ID_PROVEEDOR = pr.ID_PROVEEDOR
-         WHERE p.ACTIVO = 1
+         WHERE p.ACTIVO = 1 AND p.ES_VACUNA = 0
            AND p.STOCK <= p.STOCK_MINIMO
          ORDER BY (p.STOCK_MINIMO - p.STOCK) DESC, p.NOMBRE_PRODUCTO;
 
@@ -97,12 +97,12 @@ BEGIN
                cl.NOMBRES || ' ' || cl.APELLIDOS AS DUENO,
                cl.TELEFONO,
                cl.CORREO,
-               pr.NOMBRE_PRODUCTO AS VACUNA
+               pr.NOMBRE_VACUNA AS VACUNA
           FROM VACUNACIONES va
           JOIN PACIENTES pa ON va.ID_PACIENTE = pa.ID_PACIENTE
           JOIN ESPECIES es ON pa.ID_ESPECIE = es.ID_ESPECIE
           JOIN CLIENTES cl ON pa.ID_CLIENTE = cl.ID_CLIENTE
-          JOIN PRODUCTOS pr ON va.ID_PRODUCTO = pr.ID_PRODUCTO
+          JOIN VACUNAS pr ON va.ID_PRODUCTO = pr.ID_VACUNA
          WHERE va.ESTADO = 0
            AND (p_fecha_desde IS NULL OR TRUNC(va.FECHA_PROXIMA_DOSIS) >= TRUNC(p_fecha_desde))
            AND (p_fecha_hasta IS NULL OR TRUNC(va.FECHA_PROXIMA_DOSIS) <= TRUNC(p_fecha_hasta))
@@ -188,7 +188,7 @@ BEGIN
                    AND TRUNC(FECHA_PROXIMA_DOSIS) < TRUNC(SYSDATE)) AS VACUNAS_VENCIDAS,
                (SELECT COUNT(*)
                   FROM PRODUCTOS
-                 WHERE ACTIVO = 1
+                 WHERE ACTIVO = 1 AND ES_VACUNA = 0
                    AND STOCK <= STOCK_MINIMO) AS PRODUCTOS_CRITICOS,
                (SELECT COUNT(*)
                   FROM VENTAS
@@ -217,6 +217,7 @@ DECLARE
     v_estado_venta VENTAS.ESTADO%TYPE;
     v_stock_actual PRODUCTOS.STOCK%TYPE;
     v_activo       PRODUCTOS.ACTIVO%TYPE;
+    v_es_vacuna    PRODUCTOS.ES_VACUNA%TYPE;
 BEGIN
     SELECT ESTADO
       INTO v_estado_venta
@@ -227,11 +228,15 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20001, 'No se puede agregar detalle a una venta anulada.');
     END IF;
 
-    SELECT STOCK, ACTIVO
-      INTO v_stock_actual, v_activo
+    SELECT STOCK, ACTIVO, ES_VACUNA
+      INTO v_stock_actual, v_activo, v_es_vacuna
       FROM PRODUCTOS
      WHERE ID_PRODUCTO = :NEW.ID_PRODUCTO
        FOR UPDATE;
+
+    IF v_es_vacuna = 1 THEN
+        RAISE_APPLICATION_ERROR(-20008, 'Las vacunas se gestionan en el catálogo clínico.');
+    END IF;
 
     IF v_activo = 0 THEN
         RAISE_APPLICATION_ERROR(-20002, 'No se puede vender un producto inactivo.');

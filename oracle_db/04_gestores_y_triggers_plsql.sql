@@ -65,7 +65,7 @@ CREATE OR REPLACE PROCEDURE PROC_ADD_DETALLE_VENTA (
            FOR UPDATE;
 
     CURSOR c_producto IS
-        SELECT NOMBRE_PRODUCTO, PRECIO_UNITARIO, STOCK, STOCK_MINIMO, ACTIVO
+        SELECT NOMBRE_PRODUCTO, PRECIO_UNITARIO, STOCK, STOCK_MINIMO, ACTIVO, ES_VACUNA
           FROM PRODUCTOS
          WHERE ID_PRODUCTO = p_id_producto
            FOR UPDATE;
@@ -106,6 +106,12 @@ BEGIN
         RETURN;
     END IF;
     CLOSE c_producto;
+
+    IF v_prod.ES_VACUNA = 1 THEN
+        ROLLBACK;
+        o_mensaje := 'ERROR: Las vacunas se gestionan en el catálogo clínico.';
+        RETURN;
+    END IF;
 
     IF v_prod.ACTIVO = 0 THEN
         ROLLBACK;
@@ -402,6 +408,7 @@ BEGIN
           FROM BLOQUES_AGENDA b
           JOIN USUARIOS u ON b.ID_VETERINARIO = u.ID_USUARIO
          WHERE b.HABILITADO = 1
+           AND b.FECHA_HORA_INICIO > SYSDATE
            AND u.ACTIVO = 1
            AND (p_fecha IS NULL OR TRUNC(b.FECHA_HORA_INICIO) = TRUNC(p_fecha))
            AND NOT EXISTS (

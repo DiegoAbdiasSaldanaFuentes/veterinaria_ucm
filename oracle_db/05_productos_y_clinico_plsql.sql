@@ -17,7 +17,7 @@ CREATE OR REPLACE PROCEDURE PROC_INGRESAR_STOCK (
     CURSOR c_prod IS
         SELECT NOMBRE_PRODUCTO, STOCK, ACTIVO
           FROM PRODUCTOS
-         WHERE ID_PRODUCTO = p_id_producto
+         WHERE ID_PRODUCTO = p_id_producto AND ES_VACUNA = 0
            FOR UPDATE;
 
     v_prod c_prod%ROWTYPE;
@@ -45,7 +45,7 @@ BEGIN
 
     UPDATE PRODUCTOS
        SET STOCK = STOCK + p_cantidad
-     WHERE ID_PRODUCTO = p_id_producto;
+     WHERE ID_PRODUCTO = p_id_producto AND ES_VACUNA = 0;
 
     COMMIT;
     o_mensaje := 'OK: Stock actualizado correctamente para ' || v_prod.NOMBRE_PRODUCTO ||
@@ -75,7 +75,7 @@ BEGIN
     UPDATE PRODUCTOS
        SET STOCK        = p_nuevo_stock,
            STOCK_MINIMO = p_nuevo_stock_minimo
-     WHERE ID_PRODUCTO = p_id_producto;
+     WHERE ID_PRODUCTO = p_id_producto AND ES_VACUNA = 0;
 
     IF SQL%ROWCOUNT = 0 THEN
         ROLLBACK;
@@ -171,6 +171,7 @@ BEGIN
       INTO v_prod_activo
       FROM PRODUCTOS
      WHERE ID_PRODUCTO = p_id_producto
+       AND ES_VACUNA = 0
        AND ACTIVO = 1;
 
     IF v_prod_activo = 0 THEN
@@ -271,7 +272,7 @@ CREATE OR REPLACE PROCEDURE PROC_REGISTRAR_VACUNACION (
     o_id_vacunacion       OUT VACUNACIONES.ID_VACUNACION%TYPE,
     o_mensaje             OUT VARCHAR2
 ) IS
-    v_prod_activo NUMBER;
+    v_vacuna_activa NUMBER;
     e_fk_parent   EXCEPTION;
     PRAGMA EXCEPTION_INIT(e_fk_parent, -2291);
 BEGIN
@@ -289,14 +290,14 @@ BEGIN
     END IF;
 
     SELECT COUNT(*)
-      INTO v_prod_activo
-      FROM PRODUCTOS
-     WHERE ID_PRODUCTO = p_id_producto
+      INTO v_vacuna_activa
+      FROM VACUNAS
+     WHERE ID_VACUNA = p_id_producto
        AND ACTIVO = 1;
 
-    IF v_prod_activo = 0 THEN
+    IF v_vacuna_activa = 0 THEN
         o_id_vacunacion := NULL;
-        o_mensaje := 'ERROR: La vacuna (producto) no existe o se encuentra inactiva.';
+        o_mensaje := 'ERROR: La vacuna no existe o se encuentra inactiva.';
         RETURN;
     END IF;
 
@@ -412,7 +413,7 @@ BEGIN
                es.NOMBRE_ESPECIE,
                cl.NOMBRES || ' ' || cl.APELLIDOS AS DUENO,
                va.ID_PRODUCTO,
-               pr.NOMBRE_PRODUCTO AS VACUNA,
+               pr.NOMBRE_VACUNA AS VACUNA,
                va.ID_USUARIO,
                u.NOMBRES || ' ' || u.APELLIDOS AS VETERINARIO,
                va.FECHA_APLICACION,
@@ -423,7 +424,7 @@ BEGIN
           JOIN PACIENTES pa ON va.ID_PACIENTE = pa.ID_PACIENTE
           JOIN ESPECIES es ON pa.ID_ESPECIE = es.ID_ESPECIE
           JOIN CLIENTES cl ON pa.ID_CLIENTE = cl.ID_CLIENTE
-          JOIN PRODUCTOS pr ON va.ID_PRODUCTO = pr.ID_PRODUCTO
+          JOIN VACUNAS pr ON va.ID_PRODUCTO = pr.ID_VACUNA
           JOIN USUARIOS u ON va.ID_USUARIO = u.ID_USUARIO
          WHERE (p_id_paciente IS NULL OR va.ID_PACIENTE = p_id_paciente)
          ORDER BY va.FECHA_APLICACION DESC, va.ID_VACUNACION DESC;

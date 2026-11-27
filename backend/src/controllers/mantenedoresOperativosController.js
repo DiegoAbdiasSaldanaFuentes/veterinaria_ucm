@@ -154,11 +154,13 @@ async function eliminarProveedor(req, res, next) {
 // ============================================================================
 async function listarProductos(req, res, next) {
   try {
+    const esVacuna = req.route.path.startsWith('/vacunas');
     const result = await executePlsql(
       `BEGIN
-         :o_cursor := FUNC_GET_PRODUCTOS();
+         :o_cursor := ${esVacuna ? 'FUNC_GET_VACUNAS(:p_incluir_inactivos)' : 'FUNC_GET_PRODUCTOS(0, :p_incluir_inactivos)'};
        END;`,
       {
+        p_incluir_inactivos: req.query.incluir_inactivos === '1' ? 1 : 0,
         o_cursor: { dir: oracledb.BIND_OUT, type: oracledb.CURSOR },
       }
     );
@@ -170,6 +172,7 @@ async function listarProductos(req, res, next) {
 
 async function crearProducto(req, res, next) {
   try {
+    const esVacuna = req.route.path.startsWith('/vacunas');
     const body = req.body || {};
     const idProveedor = toNumberOrNull(body.id_proveedor ?? body.idProveedor);
     const sku = (body.sku || '').trim();
@@ -178,7 +181,7 @@ async function crearProducto(req, res, next) {
     const stock = toNumberOrNull(body.stock ?? 0);
     const stockMinimo = toNumberOrNull(body.stock_minimo ?? body.stockMinimo ?? 0);
 
-    if (!sku || !nombreProducto || precioUnitario === null) {
+    if (!sku || !nombreProducto || (!esVacuna && precioUnitario === null)) {
       return res.status(400).json({
         success: false,
         data: null,
@@ -187,7 +190,12 @@ async function crearProducto(req, res, next) {
     }
 
     const result = await executePlsql(
-      `BEGIN
+      esVacuna ? `BEGIN
+         INSERT INTO VACUNAS (ID_PROVEEDOR, SKU, NOMBRE_VACUNA, STOCK, STOCK_MINIMO)
+         VALUES (:p_id_proveedor, UPPER(:p_sku), :p_nombre_producto, :p_stock, :p_stock_minimo)
+         RETURNING ID_VACUNA INTO :o_id_producto;
+         :o_mensaje := 'Vacuna registrada.';
+       END;` : `BEGIN
          PROC_CREAR_PRODUCTO(
            :p_id_proveedor, :p_sku, :p_nombre_producto,
            :p_precio_unitario, :p_stock, :p_stock_minimo,
@@ -198,7 +206,7 @@ async function crearProducto(req, res, next) {
         p_id_proveedor: idProveedor,
         p_sku: sku,
         p_nombre_producto: nombreProducto,
-        p_precio_unitario: precioUnitario,
+        ...(!esVacuna && { p_precio_unitario: precioUnitario }),
         p_stock: stock ?? 0,
         p_stock_minimo: stockMinimo ?? 0,
         o_id_producto: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
@@ -219,6 +227,7 @@ async function crearProducto(req, res, next) {
 async function actualizarProducto(req, res, next) {
   try {
     const idProducto = toNumberOrNull(req.params.id);
+    const esVacuna = req.route.path.startsWith('/vacunas');
     const body = req.body || {};
     const idProveedor = toNumberOrNull(body.id_proveedor ?? body.idProveedor);
     const sku = (body.sku || '').trim();
@@ -228,7 +237,7 @@ async function actualizarProducto(req, res, next) {
     const stockMinimo = toNumberOrNull(body.stock_minimo ?? body.stockMinimo ?? 0);
     const activo = toNumberOrNull(body.activo ?? 1);
 
-    if (!idProducto || !sku || !nombreProducto || precioUnitario === null || activo === null) {
+    if (!idProducto || !sku || !nombreProducto || (!esVacuna && precioUnitario === null) || activo === null) {
       return res.status(400).json({
         success: false,
         data: null,
@@ -237,7 +246,15 @@ async function actualizarProducto(req, res, next) {
     }
 
     const result = await executePlsql(
-      `BEGIN
+      esVacuna ? `BEGIN
+         UPDATE VACUNAS
+            SET ID_PROVEEDOR = :p_id_proveedor, SKU = UPPER(:p_sku),
+                NOMBRE_VACUNA = :p_nombre_producto, STOCK = :p_stock,
+                STOCK_MINIMO = :p_stock_minimo, ACTIVO = :p_activo
+          WHERE ID_VACUNA = :p_id_producto;
+         IF SQL%ROWCOUNT = 0 THEN RAISE_APPLICATION_ERROR(-20009, 'Vacuna no encontrada.'); END IF;
+         :o_mensaje := 'Vacuna actualizada.';
+       END;` : `BEGIN
          PROC_ACTUALIZAR_PRODUCTO(
            :p_id_producto, :p_id_proveedor, :p_sku,
            :p_nombre_producto, :p_precio_unitario, :p_stock,
@@ -249,7 +266,7 @@ async function actualizarProducto(req, res, next) {
         p_id_proveedor: idProveedor,
         p_sku: sku,
         p_nombre_producto: nombreProducto,
-        p_precio_unitario: precioUnitario,
+        ...(!esVacuna && { p_precio_unitario: precioUnitario }),
         p_stock: stock ?? 0,
         p_stock_minimo: stockMinimo ?? 0,
         p_activo: activo,
@@ -278,8 +295,19 @@ async function eliminarProducto(req, res, next) {
       });
     }
 
+    const esVacuna = req.route.path.startsWith('/vacunas');
     const result = await executePlsql(
-      `BEGIN
+      esVacuna ? `BEGIN
+         DELETE FROM VACUNAS WHERE ID_VACUNA = :p_id_producto;
+         IF SQL%ROWCOUNT = 0 THEN RAISE_APPLICATION_ERROR(-20009, 'Vacuna no encontrada.'); END IF;
+         :o_mensaje := 'Vacuna eliminada.';
+       EXCEPTION
+         WHEN OTHERS THEN
+           IF SQLCODE = -2292 THEN
+             RAISE_APPLICATION_ERROR(-20009, 'La vacuna tiene aplicaciones registradas. Desactívala para conservar el historial.');
+           END IF;
+           RAISE;
+       END;` : `BEGIN
          PROC_ELIMINAR_PRODUCTO(:p_id_producto, :o_mensaje);
        END;`,
       {
@@ -440,7 +468,9 @@ async function crearBloqueAgenda(req, res, next) {
   try {
     const body = req.body || {};
     const idVeterinario = toNumberOrNull(body.id_veterinario ?? body.idVeterinario);
-    const fechaHoraInicio = toDateOrNull(body.fecha_hora_inicio ?? body.fechaHoraInicio);
+    const fechaHora = body.fecha_hora_inicio ?? body.fechaHoraInicio;
+    const horaLocal = typeof fechaHora === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(fechaHora);
+    const fechaHoraInicio = horaLocal ? fechaHora : toDateOrNull(fechaHora);
     const habilitado = toNumberOrNull(body.habilitado ?? 1);
 
     if (!idVeterinario || !fechaHoraInicio) {
@@ -454,7 +484,7 @@ async function crearBloqueAgenda(req, res, next) {
     const result = await executePlsql(
       `BEGIN
          PROC_CREAR_BLOQUE_AGENDA(
-           :p_id_veterinario, :p_fecha_hora_inicio,
+           :p_id_veterinario, ${horaLocal ? `TO_DATE(:p_fecha_hora_inicio, 'FXYYYY-MM-DD"T"HH24:MI')` : ':p_fecha_hora_inicio'},
            :p_habilitado, :o_id_bloque, :o_mensaje
          );
        END;`,

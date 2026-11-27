@@ -39,6 +39,7 @@ export default function Layout() {
             <>
               <Link to="/especies" className="nav-link text-white py-1">Especies</Link>
               <Link to="/productos" className="nav-link text-white py-1">Productos</Link>
+              <Link to="/vacunas" className="nav-link text-white py-1">Catálogo de vacunas</Link>
               <Link to="/proveedores" className="nav-link text-white py-1">Proveedores</Link>
               <Link to="/servicios" className="nav-link text-white py-1">Servicios</Link>
               <Link to="/usuarios" className="nav-link text-white py-1">Usuarios</Link>

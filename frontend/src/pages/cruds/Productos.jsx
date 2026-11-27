@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { getProductos, crearProducto, actualizarProducto, eliminarProducto, getProveedores } from '../../services/mantenedoresService';
 
-export default function Productos() {
+export default function Productos({ catalogo = 'productos' }) {
+  const nombre = catalogo === 'vacunas' ? 'vacuna' : 'producto';
   const [productos, setProductos] = useState([]);
   const [proveedores, setProveedores] = useState([]);
   const [mostrarModal, setMostrarModal] = useState(false);
@@ -19,7 +20,7 @@ export default function Productos() {
 
   const cargar = async () => {
     try {
-      const [resPr, resPv] = await Promise.all([getProductos(), getProveedores()]);
+      const [resPr, resPv] = await Promise.all([getProductos(catalogo, true), getProveedores()]);
       if (resPr.success) setProductos(resPr.data);
       if (resPv.success) setProveedores(resPv.data);
     } catch (err) {
@@ -29,7 +30,7 @@ export default function Productos() {
 
   useEffect(() => {
     let activo = true;
-    Promise.all([getProductos(), getProveedores()])
+    Promise.all([getProductos(catalogo, true), getProveedores()])
       .then(([resPr, resPv]) => {
         if (!activo) return;
         if (resPr.success) setProductos(resPr.data);
@@ -41,7 +42,7 @@ export default function Productos() {
     return () => {
       activo = false;
     };
-  }, []);
+  }, [catalogo]);
 
   const abrirNuevo = () => {
     setEditId(null);
@@ -67,8 +68,8 @@ export default function Productos() {
     e.preventDefault();
     try {
       const res = editId
-        ? await actualizarProducto(editId, formData)
-        : await crearProducto(formData);
+        ? await actualizarProducto(editId, formData, catalogo)
+        : await crearProducto(formData, catalogo);
       setMensaje({ tipo: res.success ? 'success' : 'danger', texto: res.message });
       if (res.success) {
         setMostrarModal(false);
@@ -80,9 +81,9 @@ export default function Productos() {
   };
 
   const handleEliminar = async (id) => {
-    if (!window.confirm('¿Eliminar este producto?')) return;
+    if (!window.confirm(`¿Eliminar ${nombre}?`)) return;
     try {
-      const res = await eliminarProducto(id);
+      const res = await eliminarProducto(id, catalogo);
       setMensaje({ tipo: res.success ? 'success' : 'danger', texto: res.message });
       if (res.success) cargar();
     } catch (err) {
@@ -93,8 +94,8 @@ export default function Productos() {
   return (
     <div className="p-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>Gestión de Productos</h2>
-        <button className="btn btn-primary" onClick={abrirNuevo}>Nuevo Producto</button>
+        <h2>Catálogo de {catalogo}</h2>
+        <button className="btn btn-primary" onClick={abrirNuevo}>Agregar {nombre}</button>
       </div>
 
       {mensaje && (
@@ -106,14 +107,14 @@ export default function Productos() {
 
       <table className="table table-striped">
         <thead className="table-dark">
-          <tr><th>SKU</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Mínimo</th><th>Proveedor</th><th>Estado</th><th>Acciones</th></tr>
+          <tr><th>SKU</th><th>Nombre</th>{catalogo === 'productos' && <th>Precio</th>}<th>Stock</th><th>Mínimo</th><th>Proveedor</th><th>Estado</th><th>Acciones</th></tr>
         </thead>
         <tbody>
           {productos.map((p) => (
             <tr key={p.id_producto}>
               <td>{p.sku}</td>
               <td>{p.nombre_producto}</td>
-              <td>${Number(p.precio_unitario).toLocaleString('es-CL')}</td>
+              {catalogo === 'productos' && <td>${Number(p.precio_unitario).toLocaleString('es-CL')}</td>}
               <td>{p.stock}</td>
               <td>{p.stock_minimo}</td>
               <td>{p.proveedor || 'SIN PROVEEDOR'}</td>
@@ -136,14 +137,14 @@ export default function Productos() {
           <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">{editId ? 'Editar Producto' : 'Nuevo Producto'}</h5>
+                <h5 className="modal-title">{editId ? `Editar ${nombre}` : `Agregar ${nombre}`}</h5>
                 <button type="button" className="btn-close" onClick={() => setMostrarModal(false)}></button>
               </div>
               <form onSubmit={handleSubmit}>
                 <div className="modal-body">
                   <input type="text" placeholder="SKU (ej: MED-001)" className="form-control mb-2" value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} required />
-                  <input type="text" placeholder="Nombre Producto" className="form-control mb-2" value={formData.nombre_producto} onChange={(e) => setFormData({ ...formData, nombre_producto: e.target.value })} required />
-                  <input type="number" min="0" placeholder="Precio Unitario" className="form-control mb-2" value={formData.precio_unitario} onChange={(e) => setFormData({ ...formData, precio_unitario: e.target.value })} required />
+                  <input type="text" placeholder={`Nombre de ${nombre}`} className="form-control mb-2" value={formData.nombre_producto} onChange={(e) => setFormData({ ...formData, nombre_producto: e.target.value })} required />
+                  {catalogo === 'productos' && <input type="number" min="0" placeholder="Precio Unitario" className="form-control mb-2" value={formData.precio_unitario} onChange={(e) => setFormData({ ...formData, precio_unitario: e.target.value })} required />}
                   <input type="number" min="0" placeholder="Stock" className="form-control mb-2" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} required />
                   <input type="number" min="0" placeholder="Stock Mínimo" className="form-control mb-2" value={formData.stock_minimo} onChange={(e) => setFormData({ ...formData, stock_minimo: e.target.value })} required />
                   <select className="form-select mb-2" value={formData.id_proveedor} onChange={(e) => setFormData({ ...formData, id_proveedor: e.target.value })}>
